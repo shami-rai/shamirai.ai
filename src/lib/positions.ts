@@ -14,7 +14,21 @@ import learned from '../data/positions.json';
  * projection is a bad use of an evening.
  */
 
-const LEARNED = learned as Record<string, [number, number]>;
+/**
+ * positions.json is generated, so its shape is asserted rather than trusted.
+ * Narrowing here instead of casting means a malformed or truncated entry is
+ * dropped and falls through to the cluster layout, rather than becoming a node
+ * at NaN that silently vanishes off the edge of the map.
+ */
+const LEARNED: Record<string, [number, number]> = Object.fromEntries(
+  Object.entries(learned as Record<string, unknown>).flatMap(([slug, value]) => {
+    if (!Array.isArray(value) || value.length !== 2) return [];
+    const [x, y] = value;
+    if (typeof x !== 'number' || typeof y !== 'number') return [];
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return [];
+    return [[slug, [x, y] as [number, number]]];
+  }),
+);
 
 function hash(s: string): number {
   let h = 2166136261 >>> 0;
