@@ -132,6 +132,40 @@ Push to GitHub, then in the Pages project settings connect the repo with build
 command `npm run build` and output directory `dist`. After that every push
 deploys and the wrangler step above stops being necessary.
 
+## Operations
+
+Facts that are painful to rediscover if something breaks.
+
+**Cloudflare Pages project:** `shamirai` (account `shami-rai-ai`). Production is the `main`
+branch; any other branch deploys to a preview URL.
+
+**Custom domain:** two proxied CNAMEs on the `shamirai.ai` zone, both pointing at
+`shamirai.pages.dev` — apex `shamirai.ai` and `www`. Cloudflare flattens the apex CNAME. Both
+domains must also be attached under the Pages project's Custom Domains, or the records resolve
+but 522.
+
+**GitHub Actions secrets** (repo `shami-rai/shamirai.ai`):
+
+| secret | purpose |
+| --- | --- |
+| `CLOUDFLARE_ACCOUNT_ID` | account the Pages project lives in |
+| `CLOUDFLARE_API_TOKEN` | used by both the embed step and the deploy step |
+
+That token needs exactly two permissions, and nothing else:
+
+- **Account → Cloudflare Pages → Edit** (deploy)
+- **Account → Workers AI → Read** (recompute positions)
+
+Set it without putting it in shell history:
+
+```bash
+gh secret set CLOUDFLARE_API_TOKEN -R shami-rai/shamirai.ai
+```
+
+**Local `.env`** holds `CF_ACCOUNT_ID` and `CF_API_TOKEN` for running `npm run embed` by hand. It
+is gitignored. If a token is ever pasted somewhere it shouldn't be, roll it in the Cloudflare
+dashboard and update both `.env` and the GitHub secret.
+
 ## Note on Node
 
 Astro is pinned to 5.x because 6 and 7 require Node ≥22.12. Astro ≤7.0.9 carries published
