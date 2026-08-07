@@ -183,12 +183,8 @@ const payload = JSON.stringify({ nodes, edges }).replace(/</g, '\\u003c');
     }
   }
 
-  /* The map is a desktop surface. Phones get the index instead. */
-  @media (max-width: 759px) {
-    .map-view {
-      display: none;
-    }
-  }
+  /* Whether this surface is shown at all is decided by "surface switching" in
+     global.css, alongside the rules it has to stay consistent with. */
 </style>
 
 <script>

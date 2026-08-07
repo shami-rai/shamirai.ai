@@ -4,7 +4,11 @@ import '../styles/global.css';
 interface Props {
   title: string;
   description?: string;
-  /** The map page owns the full viewport and must not scroll. */
+  /**
+   * Marks a page whose map view owns the full viewport. Only takes effect at
+   * sizes where the map is actually shown — see "surface switching" in
+   * global.css. Below that the same page renders the index, which must scroll.
+   */
   fixed?: boolean;
 }
 
@@ -25,11 +29,5 @@ const { title, description = 'Learn, execute, report.', fixed = false } = Astro.
   </head>
   <body class={fixed ? 'is-fixed' : ''}>
     <slot />
-    <style is:global>
-      body.is-fixed {
-        height: 100dvh;
-        overflow: hidden;
-      }
-    </style>
   </body>
 </html>

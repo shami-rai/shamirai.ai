@@ -184,3 +184,35 @@ a {
   background: var(--signal);
   color: var(--bg);
 }
+
+/* ---------- surface switching ----------
+ *
+ * The map and the index are two views of the same content and exactly one is
+ * ever shown. Three rules have to agree on the same breakpoint, so they live
+ * together here rather than scattered across the components they affect.
+ *
+ * Height matters as much as width. Node labels are a fixed 11.5px regardless of
+ * zoom, so a short viewport cannot be rescued by zooming out — that just packs
+ * nodes closer together underneath stationary text. A landscape phone (844x390)
+ * is wide enough to pass a width-only check and far too short to read.
+ */
+@media (max-width: 759px), (max-height: 519px) {
+  .map-view {
+    display: none;
+  }
+}
+
+@media (min-width: 760px) and (min-height: 520px) {
+  .index-view {
+    display: none;
+  }
+
+  /* Only the map owns the viewport. This must stay inside the same query as the
+   * map itself: applied unconditionally it propagates to the viewport and makes
+   * the index unscrollable, stranding every entry past the first screen.
+   */
+  body.is-fixed {
+    height: 100dvh;
+    overflow: hidden;
+  }
+}

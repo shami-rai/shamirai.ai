@@ -127,11 +127,7 @@ const firstLearning = sorted.findIndex((e) => e.data.state === 'learning');
     color: var(--signal);
   }
 
-  @media (min-width: 760px) {
-    .index-view {
-      display: none;
-    }
-  }
+  /* Shown/hidden by "surface switching" in global.css. */
   @media (max-width: 420px) {
     .date {
       display: none;
