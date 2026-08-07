@@ -92,12 +92,26 @@ Caveats, stated plainly because this is the part worth understanding:
 
 ## Deploying
 
-Cloudflare Pages, connected to this repo:
+Cloudflare Pages project `shamirai`, live at https://shamirai.pages.dev.
 
-- build command: `npm run build`
-- output directory: `dist`
+Nothing runs at request time — the whole site is a folder of HTML, and
+`positions.json` is committed rather than computed during the build, so no
+environment variables are needed to deploy.
 
-Nothing runs at request time. The whole site is a folder of HTML.
+### Current: direct upload
+
+```bash
+npm run build
+npx wrangler@4 pages deploy dist --project-name=shamirai --branch=main
+```
+
+Needs `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` in the environment.
+
+### Better: connect the repo
+
+Push to GitHub, then in the Pages project settings connect the repo with build
+command `npm run build` and output directory `dist`. After that every push
+deploys and the wrangler step above stops being necessary.
 
 ## Note on Node
 
