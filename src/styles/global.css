@@ -51,7 +51,7 @@ a {
 
 /* ---------- the five beats ---------- */
 /* Entry bodies are plain markdown with fixed `##` headings. The rigidity of the
-   format is enforced by the template in `npm run new`, not by the schema — so a
+   format is enforced by the template in `npm run new`, not by the schema, so a
    half-written entry still renders instead of failing the build. */
 .beats h2 {
   font-family: var(--mono);
@@ -65,7 +65,7 @@ a {
 .beats h2:first-child {
   margin-top: 0;
 }
-/* A beat with nothing under it — either the next heading follows immediately, or
+/* A beat with nothing under it. Either the next heading follows immediately, or
    it's the last thing in the entry. Says so, instead of leaving a bare heading
    that reads like a rendering bug. */
 .beats h2:has(+ h2)::after,
@@ -192,7 +192,7 @@ a {
  * together here rather than scattered across the components they affect.
  *
  * Height matters as much as width. Node labels are a fixed 11.5px regardless of
- * zoom, so a short viewport cannot be rescued by zooming out — that just packs
+ * zoom, so a short viewport cannot be rescued by zooming out. That just packs
  * nodes closer together underneath stationary text. A landscape phone (844x390)
  * is wide enough to pass a width-only check and far too short to read.
  */

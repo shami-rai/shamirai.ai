@@ -45,7 +45,7 @@ const payload = JSON.stringify({ nodes, edges }).replace(/</g, '\\u003c');
   </aside>
 </div>
 
-{/* Node data as inert JSON rather than define:vars — nothing is interpolated
+{/* Node data as inert JSON rather than define:vars. Nothing is interpolated
     into executable script text, so titles can contain whatever they like. */}
 <script type="application/json" id="map-data" is:inline set:html={payload} />
 
@@ -217,7 +217,7 @@ const payload = JSON.stringify({ nodes, edges }).replace(/</g, '\\u003c');
     let filter = 'all';
     let labelDy: number[] = nodes.map(() => 0);
     let laidOutAt = -1;
-    // Once the reader pans or zooms, the view is theirs — stop re-framing it.
+    // Once the reader pans or zooms, the view is theirs, so stop re-framing it.
     let userMoved = false;
     const t0 = performance.now();
 
@@ -250,7 +250,7 @@ const payload = JSON.stringify({ nodes, edges }).replace(/</g, '\\u003c');
 
     /** Frame the whole graph, whatever spread the embeddings produced. */
     function fit() {
-      // Guard against running before the layout has a real viewport — an early
+      // Guard against running before the layout has a real viewport. An early
       // fit with a placeholder height clamps to minimum zoom and never recovers.
       if (W < 200 || H < 200 || !nodes.length) return;
       const xs = nodes.map((n) => n.x);
@@ -272,7 +272,7 @@ const payload = JSON.stringify({ nodes, edges }).replace(/</g, '\\u003c');
 
     /**
      * Push overlapping labels apart vertically. Runs only when the zoom changes,
-     * not per frame — relative label geometry depends on scale, not on pan.
+     * not per frame, because relative label geometry depends on scale, not on pan.
      */
     function layoutLabels() {
       const s = scale();

@@ -74,7 +74,7 @@ try {
 const dir = join(PROJECTS_ROOT, slug);
 try {
   await access(dir);
-  die(`${dir} already exists — refusing to touch it.`);
+  die(`${dir} already exists. Refusing to touch it.`);
 } catch (e) {
   if (e.message?.startsWith(dir)) throw e; // rethrow our own die()
 }
@@ -87,7 +87,7 @@ const readme = `# ${title}
 ${summary}
 
 Part of the learn → execute → report loop at
-[shamirai.ai](https://shamirai.ai/e/${slug}/) — the writeup lives there.
+[shamirai.ai](https://shamirai.ai/e/${slug}/). The writeup lives there.
 
 ## Status
 
@@ -131,6 +131,6 @@ console.log(`\n  repo      https://github.com/${owner}/${slug}`);
 console.log(`  local     ${dir}`);
 console.log(`  node      src/content/entries/${slug}.md${flipped ? '  (learning -> executing)' : ''}`);
 console.log(`\nNext:`);
-console.log(`  1. commit the site change, push — the map updates`);
+console.log(`  1. commit the site change, push, and the map updates`);
 console.log(`  2. open a NEW conversation in ${dir} and build it`);
 console.log(`  3. come back here to write the five beats and flip to reported`);

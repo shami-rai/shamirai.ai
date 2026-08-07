@@ -4,9 +4,9 @@ import learned from '../data/positions.json';
 /**
  * Where a node sits on the map, resolved in three layers, most specific first:
  *
- *   1. `position` in the entry's frontmatter  — manual override, always wins
- *   2. src/data/positions.json                — written by `npm run embed`
- *   3. deterministic scatter around a cluster — works with zero setup
+ *   1. `position` in the entry's frontmatter  (manual override, always wins)
+ *   2. src/data/positions.json                (written by `npm run embed`)
+ *   3. deterministic scatter around a cluster (works with zero setup)
  *
  * Layer 3 means the map is never broken or empty, even on a fresh clone with no
  * Cloudflare credentials. Layer 1 exists because embeddings will occasionally
@@ -74,8 +74,8 @@ function resolveOne(
  *
  * This is presentation overriding data, applied deliberately and last: two
  * entries being near-identical in embedding space is true but unreadable, and a
- * map you can't read tells you nothing. Manually pinned nodes never move —
- * if you set a position in frontmatter, you meant it.
+ * map you can't read tells you nothing. Manually pinned nodes never move.
+ * If you set a position in frontmatter, you meant it.
  */
 function declump(
   pts: { at: [number, number]; pinned: boolean }[],
@@ -118,7 +118,7 @@ export interface Placeable {
   position?: [number, number];
 }
 
-/** Resolve every node's position together — spacing is a property of the set. */
+/** Resolve every node's position together, since spacing is a property of the set. */
 export function layoutNodes<T extends Placeable>(items: T[]): Map<string, [number, number]> {
   const resolved = items.map((i) => resolveOne(i.slug, i.cluster, i.position));
   declump(resolved);

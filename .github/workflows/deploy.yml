@@ -31,15 +31,15 @@ jobs:
 
       - run: npm ci
 
-      # Entries are typed data — `state` is an enum, `cluster` is a key, and a
+      # Entries are typed data: `state` is an enum, `cluster` is a key, and a
       # typo in frontmatter should fail here rather than quietly ship a broken
       # map. Three seconds well spent.
       - name: Type check
         run: npm run check
 
       # Deliberately non-fatal. If Workers AI is unreachable or the token has
-      # expired, the committed positions.json is still a perfectly good layout —
-      # that's the whole point of resolving positions in layers. A dead embedding
+      # expired, the committed positions.json is still a perfectly good layout.
+      # That's the whole point of resolving positions in layers. A dead embedding
       # service should not be able to block a deploy.
       - name: Recompute map positions
         id: embed

@@ -5,7 +5,7 @@
  *   npm run new -- "Agent trajectory eval"
  *   npm run new -- "Agent trajectory eval" --cluster evals --state executing
  *
- * A `learning` entry is frontmatter only — it exists to mark a gap on the map.
+ * A `learning` entry is frontmatter only. It exists to mark a gap on the map.
  * Anything further along gets the five beats pre-written so the blank page is
  * never actually blank.
  */
@@ -34,7 +34,7 @@ const state = flags.state ?? 'learning';
 const cluster = flags.cluster ?? 'agents';
 
 if (!['learning', 'executing', 'reported'].includes(state)) {
-  console.error(`unknown state "${state}" — use learning, executing, or reported`);
+  console.error(`unknown state "${state}". Use learning, executing, or reported`);
   process.exit(1);
 }
 
@@ -82,7 +82,7 @@ try {
   console.error(`refusing to overwrite: src/content/entries/${slug}.md already exists`);
   process.exit(1);
 } catch {
-  // doesn't exist — good
+  // doesn't exist, good
 }
 
 await writeFile(path, `${front}\n${body}`, 'utf8');

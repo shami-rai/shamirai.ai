@@ -14,11 +14,11 @@ const entries = defineCollection({
     // reported  = done. All five beats.
     state: z.enum(STATES),
 
-    // Groups the node when there are no embeddings yet, and tints nothing —
-    // clusters are structural, not decorative. See src/lib/clusters.ts.
+    // Groups the node when there are no embeddings yet, and tints nothing.
+    // Clusters are structural, not decorative. See src/lib/clusters.ts.
     cluster: z.string(),
 
-    // One line: what is this topic? Not what you found — that's the beats.
+    // One line: what is this topic? Not what you found, which is the beats.
     // It's also most of what `npm run embed` has to work with on an entry you
     // haven't written up yet, so a vague summary means a vague map.
     summary: z.string().optional(),

@@ -15,7 +15,7 @@ const stamp = date
   ? date.toISOString().slice(0, 10)
   : state === 'executing'
     ? 'in progress'
-    : '—';
+    : 'not started';
 
 const glyph = state === 'reported' ? '●' : state === 'executing' ? '◐' : '○';
 ---
@@ -33,7 +33,7 @@ const glyph = state === 'reported' ? '●' : state === 'executing' ? '◐' : '�
       <Content />
     ) : (
       <p class="unwritten">
-        Nothing written yet. It's on the map because I want to understand it — the node exists
+        Nothing written yet. It's on the map because I want to understand it. The node exists
         so I can see the gap.
       </p>
     )
@@ -74,7 +74,7 @@ const glyph = state === 'reported' ? '●' : state === 'executing' ? '◐' : '�
     color: var(--dim);
     letter-spacing: 0.05em;
   }
-  /* Deliberately not styled like a beat — this is context, not a finding. */
+  /* Deliberately not styled like a beat. This is context, not a finding. */
   .summary {
     font-family: var(--serif);
     font-size: 15px;

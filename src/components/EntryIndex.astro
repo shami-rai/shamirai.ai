@@ -28,7 +28,7 @@ const firstLearning = sorted.findIndex((e) => e.data.state === 'learning');
   {
     sorted.map((e, i) => (
       <>
-        {i === firstLearning && firstLearning !== -1 && <p class="section">queued — not started</p>}
+        {i === firstLearning && firstLearning !== -1 && <p class="section">queued, not started</p>}
         <a class="row" href={`/e/${e.id}/`}>
           <canvas class="sigil" data-title={e.data.title} data-state={e.data.state} />
           <span class="body">
@@ -44,7 +44,7 @@ const firstLearning = sorted.findIndex((e) => e.data.state === 'learning');
               ? e.data.date.toISOString().slice(0, 10)
               : e.data.state === 'executing'
                 ? 'in progress'
-                : '—'}
+                : ''}
           </span>
         </a>
       </>

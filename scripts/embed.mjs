@@ -5,7 +5,7 @@
  *   npm run embed
  *
  * Reads every entry, embeds it with Workers AI, projects 768 dimensions down to
- * 2 with PCA, and writes src/data/positions.json. Commit that file — it's the
+ * 2 with PCA, and writes src/data/positions.json. Commit that file. It is the
  * layout, and it should be stable between builds.
  *
  * Needs CF_ACCOUNT_ID and CF_API_TOKEN (see .env.example). Without them the site
@@ -137,13 +137,13 @@ const accountId = process.env.CF_ACCOUNT_ID;
 const token = process.env.CF_API_TOKEN;
 if (!accountId || !token) {
   console.error('Missing CF_ACCOUNT_ID / CF_API_TOKEN. Copy .env.example to .env and fill it in.');
-  console.error('The site builds fine without this — positions fall back to the cluster layout.');
+  console.error('The site builds fine without this. Positions fall back to the cluster layout.');
   process.exit(1);
 }
 
 const files = (await readdir(ENTRIES)).filter((f) => f.endsWith('.md'));
 if (files.length < 3) {
-  console.error(`Only ${files.length} entries — need at least 3 for a projection to mean anything.`);
+  console.error(`Only ${files.length} entries. Need at least 3 for a projection to mean anything.`);
   process.exit(1);
 }
 
@@ -170,4 +170,4 @@ const positions = Object.fromEntries(
 
 await writeFile(OUT, `${JSON.stringify(positions, null, 2)}\n`, 'utf8');
 console.log(`Wrote ${Object.keys(positions).length} positions to src/data/positions.json`);
-console.log('Commit it — that file is the map layout.');
+console.log('Commit it. That file is the map layout.');
