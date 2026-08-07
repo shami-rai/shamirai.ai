@@ -37,9 +37,10 @@ Clusters are keys in `src/lib/clusters.ts`. Add one there before using it in fro
 npm run project -- <slug> [--private]
 ```
 
-Creates `~/Documents/projects/<slug>`, a GitHub repo of the same name, writes `repo:` back into
-the entry, and flips `learning` → `executing`. It refuses any slug that isn't already an entry —
-that guard is deliberate, so unrelated local work is never pushed to GitHub. Do not weaken it.
+Creates `../<slug>` (a sibling of this repo, inside `ai-projects/`), a GitHub repo of the same
+name, writes `repo:` back into the entry, and flips `learning` → `executing`. It refuses any slug
+that isn't already an entry — that guard is deliberate, so unrelated local work is never pushed to
+GitHub. Do not weaken it.
 
 **One name everywhere:** node slug = repo name = local directory name.
 

@@ -46,14 +46,16 @@ Clusters live in `src/lib/clusters.ts`. Add one there before using it in frontma
 npm run project -- loop-engineering
 ```
 
-Creates `~/Documents/projects/loop-engineering`, a public GitHub repo of the same name (pass
-`--private` for private), writes `repo:` back into the entry, and flips `learning` → `executing`.
+Creates `../loop-engineering` — a sibling of this repo, so
+`~/Documents/projects/ai-projects/loop-engineering` — plus a public GitHub repo of the same name
+(pass `--private` for private). It writes `repo:` back into the entry and flips `learning` →
+`executing`.
 
 **One name everywhere:** node slug = repo name = local directory name. No mapping to remember.
 
 The script refuses any slug that isn't already an entry. That's deliberate — it can only ever
-create repos for topics already on the map, so unrelated local work under `~/Documents/projects`
-can never be pushed to GitHub by it.
+create repos for topics already on the map, so unrelated local work can never be pushed to GitHub
+by it.
 
 Not every node needs a repo. Plenty are pure reading, and correctly have no `repo:` at all.
 

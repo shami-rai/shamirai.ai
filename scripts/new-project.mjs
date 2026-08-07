@@ -6,7 +6,7 @@
  *   npm run project -- loop-engineering --private
  *
  * It will:
- *   - create ~/Documents/projects/<slug>  (sibling of this repo)
+ *   - create ../<slug>  (a sibling of this repo, inside ai-projects/)
  *   - git init, seed a README from the node's own question
  *   - create github.com/<owner>/<slug> and push
  *   - write `repo:` back into the node's frontmatter
