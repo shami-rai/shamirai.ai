@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shamirai.ai — prototype B — generative index</title>
+<style>
+  :root {
+    --bg:     #0b0b0c;
+    --dim:    #4a4845;
+    --mid:    #7d7a75;
+    --fg:     #e9e6e1;
+    --signal: #d8a13a;
+    --line:   #1e1e21;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font-family: var(--mono); -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 780px; margin: 0 auto; padding: 76px 30px 140px; }
+
+  /* ---- head ---- */
+  .wordmark { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; }
+  .wordmark b { font-weight: 600; }
+  .wordmark span { color: var(--dim); }
+  .tagline {
+    margin-top: 9px; font-size: 12px; color: var(--mid);
+    letter-spacing: .02em; line-height: 1.6; max-width: 42ch;
+  }
+  .counts {
+    margin-top: 34px; padding-bottom: 20px; border-bottom: 1px solid var(--line);
+    font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim);
+    display: flex; gap: 20px;
+  }
+  .counts b { color: var(--mid); font-weight: 400; }
+
+  /* ---- rows ---- */
+  .row { border-bottom: 1px solid var(--line); }
+  .row-head {
+    display: grid; grid-template-columns: 62px 1fr auto; align-items: center; gap: 20px;
+    padding: 20px 0; cursor: pointer; transition: .18s;
+  }
+  .row-head:hover { background: #101012; }
+  .row-head:hover .r-title { color: #fff; }
+  canvas.sigil { width: 62px; height: 62px; display: block; }
+
+  .r-title { font-size: 15px; letter-spacing: -.01em; transition: .18s; line-height: 1.3; }
+  .r-sub {
+    margin-top: 7px; font-size: 10.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--dim);
+    display: flex; gap: 12px; align-items: center;
+  }
+  .chip { color: var(--mid); }
+  .chip.executing { color: var(--signal); }
+  .chip.reported  { color: var(--fg); }
+  .r-date { font-size: 11px; color: var(--dim); letter-spacing: .06em; white-space: nowrap; }
+
+  /* ---- expanding body ---- */
+  .r-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .38s cubic-bezier(.22,.9,.3,1); }
+  .row.open .r-body { grid-template-rows: 1fr; }
+  .r-body > div { overflow: hidden; }
+  .r-inner { padding: 4px 0 34px 82px; max-width: 60ch; }
+  @media (max-width: 620px){ .r-inner { padding-left: 0; } .row-head { grid-template-columns: 44px 1fr; } canvas.sigil{width:44px;height:44px} .r-date{display:none} }
+
+  .beat { margin-bottom: 20px; }
+  .beat h3 {
+    font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--signal); font-weight: 500; margin: 0 0 7px;
+  }
+  .beat p { font-family: var(--serif); font-size: 15.5px; line-height: 1.65; color: #cbc7c0; margin: 0; }
+  .links { margin-top: 26px; display: flex; gap: 18px; }
+  .links a {
+    font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--fg);
+    text-decoration: none; border-bottom: 1px solid var(--dim); padding-bottom: 3px;
+  }
+  .links a:hover { color: var(--signal); border-color: var(--signal); }
+  .empty { font-family: var(--serif); font-size: 15.5px; line-height: 1.65; color: var(--mid); margin: 0; }
+
+  .sect {
+    margin: 44px 0 4px; font-size: 10px; letter-spacing: .2em;
+    text-transform: uppercase; color: #35343a;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="wordmark"><b>shamirai</b><span>.ai</span></div>
+  <div class="tagline">a lab notebook. every entry is the same five questions, so I never have to decide how to write one.</div>
+  <div class="counts" id="counts"></div>
+  <div id="list"></div>
+</div>
+
+<script>
+// ---------------------------------------------------------------- data
+const ITEMS = [
+  { t:"Context compaction", s:"executing", d:"in progress", tag:"agents",
+    n:{ q:"How do long-running agents decide what to forget? Summarising every N turns feels lossy in a way nobody quantifies.",
+        b:"Half-built: a compactor that scores each turn for future-relevance before dropping it, rather than summarising chronologically." } },
+  { t:"Agent trajectory eval", s:"executing", d:"in progress", tag:"evals",
+    n:{ q:"Final-answer accuracy hides everything interesting. How do you score the path an agent took, not just where it landed?",
+        b:"Logging full tool-call traces and trying to score them on redundancy, recovery, and dead ends." } },
+  { t:"Durable Objects as agent state", s:"executing", d:"in progress", tag:"runtime",
+    n:{ q:"Is a Durable Object a good home for one agent's memory — a single object per session, alive between calls?",
+        b:"Prototyping one DO per agent session holding the scratchpad and the tool history." } },
+  { t:"Chunking strategies", s:"executing", d:"in progress", tag:"retrieval",
+    n:{ q:"Every chunking guide gives different numbers and none of them show their evaluation. Can I generate my own answer for my own corpus?",
+        b:"A harness that re-chunks the same corpus 12 ways and scores retrieval against a hand-labelled question set." } },
+
+  { t:"MCP server authoring", s:"reported", d:"2026-07-14", tag:"mcp",
+    n:{ q:"What does it actually take to expose my own data to an agent as first-class tools?",
+        b:"An MCP server over my personal notes with four tools: search, read, link, and recent.",
+        s:"Tool descriptions did more for reliability than tool design. Rewriting one description — being explicit about when NOT to call it — cut spurious calls by more than half. The prose is the interface.",
+        w:"I'd write the tool descriptions before the implementations, as a design exercise. They're the actual API surface." } },
+  { t:"LLM-as-judge", s:"reported", d:"2026-06-09", tag:"evals",
+    n:{ q:"Can a model reliably grade another model's output, or does it just reward things that look like its own writing?",
+        b:"Scored 300 outputs with three judge configs against my own blind human labels.",
+        s:"Position bias was brutal — swapping A/B order flipped the verdict 23% of the time. Once I randomised order and averaged both directions, agreement with my labels went from 61% to 84%. The judge wasn't bad, my harness was.",
+        w:"I nearly published the 61% result as 'LLM judges are unreliable.' That would have been a confidently wrong post. Now I try to break my harness before I trust a negative result." } },
+  { t:"Multi-agent orchestration", s:"reported", d:"2026-05-18", tag:"agents",
+    n:{ q:"If I split a task across three specialised agents instead of one generalist, does quality go up — or do I pay 3× the tokens for the same answer?",
+        b:"A planner/worker/critic trio over a research task, all on Workers AI. Shared scratchpad in a Durable Object so agents read each other's partial output instead of re-deriving it.",
+        s:"The critic was the whole value. Planner+worker alone was slightly worse than a single agent — the handoff lost context. Adding the critic flipped it. Also: 3× agents was not 3× cost, it was 5.2×, because every handoff re-sends context.",
+        w:"Start with the critic. I built the fun part (orchestration) first and the part that actually mattered last. Next time I test the cheapest possible version of the hypothesis before building the architecture." } },
+  { t:"Tool-use error recovery", s:"reported", d:"2026-04-02", tag:"agents",
+    n:{ q:"When a tool call fails, is it better to hand the raw error back to the model or to translate it into an instruction?",
+        b:"A harness wrapping 6 tools that runs in three modes: raw error, translated error, or translated error plus one suggested fix. Ran 200 induced failures through each.",
+        s:"Raw stack traces beat my hand-written friendly messages. The model reads tracebacks better than it reads my prose. My 'helpful' translation was destroying the signal it needed.",
+        w:"I'd stop assuming the model wants what a human wants. Half my design instincts here were transferred from UX and were actively wrong." } },
+  { t:"Vector search", s:"reported", d:"2026-03-11", tag:"retrieval",
+    n:{ q:"Do I actually understand what an embedding is, or have I just been calling an API?",
+        b:"Cosine similarity search built from scratch over 4k of my own notes — no library. Then swapped in Vectorize and compared.",
+        s:"My naive version matched Vectorize's ranking ~90% of the time on this corpus. The other 10% were all cases where my chunking was bad, not where my math was bad. Retrieval quality was a data problem, not an algorithm problem.",
+        w:"Nothing — highest value-per-hour thing I've built. Writing the dumb version first is now my default." } },
+  { t:"Workers AI at the edge", s:"reported", d:"2026-02-20", tag:"runtime",
+    n:{ q:"How much of an agent can run at the edge with no origin server and no API key?",
+        b:"A summariser running entirely on Cloudflare Workers AI — inference, embeddings, and storage inside one Worker.",
+        s:"Cold-start inference was better than expected, but the model catalogue is the real constraint, not the runtime. I spent more time working around model availability than writing code.",
+        w:"Pick the model first and design around its limits, instead of designing the system and then shopping for a model that fits." } },
+
+  { t:"ReAct loops",               s:"learning", d:"—", tag:"agents" },
+  { t:"Hybrid BM25 + dense",       s:"learning", d:"—", tag:"retrieval" },
+  { t:"Late interaction / ColBERT",s:"learning", d:"—", tag:"retrieval" },
+  { t:"Prompt regression suites",  s:"learning", d:"—", tag:"evals" },
+  { t:"Streaming + backpressure",  s:"learning", d:"—", tag:"runtime" },
+  { t:"Sampling & elicitation",    s:"learning", d:"—", tag:"mcp" },
+];
+
+// ---------------------------------------------------------------- sigil generator
+// deterministic: same title -> same mark, forever. you never pick artwork.
+function hash(str){
+  let h = 2166136261 >>> 0;
+  for (let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return h >>> 0;
+}
+function rng(seed){
+  let a = seed >>> 0;
+  return () => { a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+const INK = { learning:'rgba(122,119,113,', executing:'rgba(216,161,58,', reported:'rgba(233,230,225,' };
+
+function sigil(cv, title, state){
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const S = cv.clientWidth || 62;
+  cv.width = S*dpr; cv.height = S*dpr;
+  const g = cv.getContext('2d');
+  g.setTransform(dpr,0,0,dpr,0,0);
+  const R = rng(hash(title));
+  const cx = S/2, cy = S/2, max = S*0.40;
+  const ink = INK[state];
+
+  // 2-3 concentric arcs
+  const arcs = 2 + Math.floor(R()*2);
+  for (let i=0;i<arcs;i++){
+    const r = max * (0.42 + 0.58 * (i+1)/arcs);
+    const a0 = R()*Math.PI*2, span = Math.PI*(0.45 + R()*1.25);
+    g.beginPath(); g.arc(cx, cy, r, a0, a0+span);
+    g.strokeStyle = ink + (0.30 + 0.28*i/arcs) + ')';
+    g.lineWidth = 1; g.stroke();
+  }
+
+  // k points on a ring, connected by chords
+  const k = 3 + Math.floor(R()*4);
+  const rot = R()*Math.PI*2;
+  const pts = [];
+  for (let i=0;i<k;i++){
+    const a = rot + i*(Math.PI*2/k) + (R()-0.5)*0.5;
+    const r = max * (0.55 + R()*0.45);
+    pts.push([cx + Math.cos(a)*r, cy + Math.sin(a)*r]);
+  }
+  g.strokeStyle = ink + '0.55)'; g.lineWidth = 1;
+  for (let i=0;i<k;i++){
+    const j = (i + 1 + Math.floor(R()*(k-1))) % k;
+    g.beginPath(); g.moveTo(...pts[i]); g.lineTo(...pts[j]); g.stroke();
+  }
+
+  // radial ticks
+  const ticks = 2 + Math.floor(R()*3);
+  for (let i=0;i<ticks;i++){
+    const a = R()*Math.PI*2;
+    g.beginPath();
+    g.moveTo(cx + Math.cos(a)*max*0.92, cy + Math.sin(a)*max*0.92);
+    g.lineTo(cx + Math.cos(a)*max*1.12, cy + Math.sin(a)*max*1.12);
+    g.strokeStyle = ink + '0.4)'; g.lineWidth = 1; g.stroke();
+  }
+
+  // nodes
+  for (const [x,y] of pts){
+    g.beginPath(); g.arc(x, y, state==='reported' ? 2.1 : 1.7, 0, 7);
+    g.fillStyle = ink + (state==='learning' ? '0.7)' : '0.95)'); g.fill();
+  }
+
+  // core
+  g.beginPath(); g.arc(cx, cy, 1.6, 0, 7);
+  g.fillStyle = ink + '0.9)'; g.fill();
+}
+
+// ---------------------------------------------------------------- build
+const list = document.getElementById('list');
+let printedRule = false;
+
+ITEMS.forEach((it, i) => {
+  if (it.s === 'learning' && !printedRule){
+    const h = document.createElement('div');
+    h.className = 'sect'; h.textContent = 'queued — not started';
+    list.appendChild(h); printedRule = true;
+  }
+  const row = document.createElement('div');
+  row.className = 'row';
+
+  let body = '';
+  if (!it.n){
+    body = `<p class="empty">Nothing written yet. It's listed because I want to understand it — the entry exists so I can see the gap.</p>`;
+  } else {
+    const beats = [["the question", it.n.q], ["what I built", it.n.b], ["what surprised me", it.n.s], ["what I'd do differently", it.n.w]];
+    for (const [h, txt] of beats) if (txt) body += `<div class="beat"><h3>${h}</h3><p>${txt}</p></div>`;
+    if (it.s === 'executing') body += `<div class="beat"><h3>still open</h3><p style="color:var(--mid)">Not finished — the last two beats get written when it is.</p></div>`;
+    if (it.s === 'reported') body += `<div class="links"><a href="#">repo</a><a href="#">live</a></div>`;
+  }
+
+  row.innerHTML = `
+    <div class="row-head">
+      <canvas class="sigil"></canvas>
+      <div>
+        <div class="r-title">${it.t}</div>
+        <div class="r-sub"><span class="chip ${it.s}">${it.s}</span><span>${it.tag}</span></div>
+      </div>
+      <div class="r-date">${it.d}</div>
+    </div>
+    <div class="r-body"><div><div class="r-inner">${body}</div></div></div>`;
+
+  list.appendChild(row);
+  sigil(row.querySelector('canvas'), it.t, it.s);
+  row.querySelector('.row-head').addEventListener('click', () => row.classList.toggle('open'));
+});
+
+const c = s => ITEMS.filter(x => x.s === s).length;
+document.getElementById('counts').innerHTML =
+  `<span><b>${ITEMS.length}</b> entries</span><span><b>${c('reported')}</b> reported</span><span><b>${c('executing')}</b> executing</span><span><b>${c('learning')}</b> learning</span>`;
+</script>
+</body>
+</html>

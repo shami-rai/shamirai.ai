@@ -1,0 +1,82 @@
+{
+  "agent-execution-graphs": [
+    0.0831,
+    -0.7116
+  ],
+  "agent-trajectory-eval": [
+    0.1281,
+    0.1261
+  ],
+  "building-shamirai-ai": [
+    -0.3259,
+    -0.3498
+  ],
+  "chunking-strategies": [
+    -0.3231,
+    0.72
+  ],
+  "context-compaction": [
+    -0.1124,
+    0.1715
+  ],
+  "durable-objects-agent-state": [
+    -0.5265,
+    -0.72
+  ],
+  "graph-rag": [
+    -0.4739,
+    0.4637
+  ],
+  "harness-engineering": [
+    0.72,
+    0.0237
+  ],
+  "hybrid-search": [
+    -0.72,
+    0.6256
+  ],
+  "knowledge-graphs-as-memory": [
+    -0.3432,
+    -0.5063
+  ],
+  "llm-as-judge": [
+    -0.1123,
+    0.1361
+  ],
+  "loop-engineering": [
+    0.4384,
+    -0.1188
+  ],
+  "mcp-server-authoring": [
+    0.0812,
+    -0.6085
+  ],
+  "multi-agent-orchestration": [
+    0.1364,
+    -0.2069
+  ],
+  "prompt-regression-suites": [
+    0.4174,
+    0.4013
+  ],
+  "react-loops": [
+    0.1403,
+    -0.4324
+  ],
+  "streaming-and-backpressure": [
+    -0.5637,
+    0.3419
+  ],
+  "tool-descriptions-as-api": [
+    0.2358,
+    -0.1061
+  ],
+  "tool-use-error-recovery": [
+    0.3336,
+    0.6535
+  ],
+  "workers-ai-at-the-edge": [
+    -0.6957,
+    -0.5251
+  ]
+}

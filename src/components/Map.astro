@@ -1,0 +1,524 @@
+---
+import { nearestEdges, type MapNode } from '../lib/graph';
+
+interface Props {
+  nodes: MapNode[];
+}
+
+const { nodes } = Astro.props;
+const edges = nearestEdges(nodes, 2);
+
+const count = (s: string) => nodes.filter((n) => n.state === s).length;
+// `set:html` emits raw, so a title containing `</script>` would otherwise close
+// the tag early. Escaping `<` as < is still valid JSON and can't break out.
+const payload = JSON.stringify({ nodes, edges }).replace(/</g, '\\u003c');
+---
+
+<div class="map-view">
+  <canvas id="map"></canvas>
+
+  <header class="chrome-top">
+    <div>
+      <a href="/" class="wordmark"><b>shamirai</b><span>.ai</span></a>
+      <p class="tagline">a live map of what I'm learning, what I'm building, and what I finished.</p>
+    </div>
+    <div class="counts">
+      <b>{nodes.length}</b> nodes<br />
+      <b>{count('reported')}</b> reported · <b>{count('executing')}</b> executing · <b
+        >{count('learning')}</b
+      > learning
+    </div>
+  </header>
+
+  <div class="filters" id="filters">
+    <button data-f="all" aria-pressed="true">all</button>
+    <button data-f="learning" aria-pressed="false">learning</button>
+    <button data-f="executing" aria-pressed="false">executing</button>
+    <button data-f="reported" aria-pressed="false">reported</button>
+  </div>
+
+  <p class="hint">drag to pan · scroll to zoom · click a node</p>
+
+  <aside id="panel" aria-hidden="true">
+    <button class="panel-close" id="panel-close" aria-label="Close">✕</button>
+    <div id="panel-body"></div>
+  </aside>
+</div>
+
+{/* Node data as inert JSON rather than define:vars — nothing is interpolated
+    into executable script text, so titles can contain whatever they like. */}
+<script type="application/json" id="map-data" is:inline set:html={payload} />
+
+<style>
+  .map-view {
+    position: fixed;
+    inset: 0;
+  }
+  canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: grab;
+  }
+  canvas.dragging {
+    cursor: grabbing;
+  }
+
+  .chrome-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 5;
+    padding: 22px 26px;
+    pointer-events: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+  }
+  .chrome-top .wordmark {
+    pointer-events: auto;
+  }
+  .tagline {
+    margin: 7px 0 0;
+    font-size: 11.5px;
+    color: var(--mid);
+    line-height: 1.5;
+    max-width: 30ch;
+  }
+  .counts {
+    font-size: 11px;
+    color: var(--dim);
+    text-align: right;
+    line-height: 1.9;
+    letter-spacing: 0.04em;
+  }
+  .counts b {
+    color: var(--mid);
+    font-weight: 400;
+  }
+
+  .filters {
+    position: absolute;
+    left: 26px;
+    bottom: 24px;
+    z-index: 5;
+    display: flex;
+    gap: 6px;
+  }
+  .filters button {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--mid);
+    background: transparent;
+    border: 1px solid var(--line);
+    padding: 7px 12px;
+    cursor: pointer;
+    transition: 0.16s;
+  }
+  .filters button:hover {
+    color: var(--fg);
+    border-color: var(--dim);
+  }
+  .filters button[aria-pressed='true'] {
+    color: var(--bg);
+    background: var(--fg);
+    border-color: var(--fg);
+  }
+
+  .hint {
+    position: absolute;
+    right: 26px;
+    bottom: 26px;
+    z-index: 5;
+    margin: 0;
+    font-size: 10.5px;
+    color: #35343a;
+    letter-spacing: 0.06em;
+  }
+
+  #panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(430px, 92vw);
+    background: var(--bg-raised);
+    border-left: 1px solid var(--line);
+    z-index: 10;
+    transform: translateX(102%);
+    transition: transform 0.42s cubic-bezier(0.22, 0.9, 0.3, 1);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 26px 30px 70px;
+  }
+  #panel.open {
+    transform: none;
+  }
+  .panel-close {
+    position: absolute;
+    top: 20px;
+    right: 22px;
+    background: none;
+    border: 0;
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px;
+  }
+  .panel-close:hover {
+    color: var(--fg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #panel {
+      transition: none;
+    }
+  }
+
+  /* The map is a desktop surface. Phones get the index instead. */
+  @media (max-width: 759px) {
+    .map-view {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  interface N {
+    slug: string;
+    label: string;
+    state: 'learning' | 'executing' | 'reported';
+    cluster: string;
+    x: number;
+    y: number;
+  }
+
+  const raw = document.getElementById('map-data')?.textContent;
+  const cv = document.getElementById('map') as HTMLCanvasElement | null;
+  if (raw && cv) {
+    const { nodes, edges } = JSON.parse(raw) as { nodes: N[]; edges: [number, number][] };
+    const ctx = cv.getContext('2d')!;
+
+    const BASE = 420; // world units -> px at zoom 1
+    const LABEL_GAP = 9;
+    const LINE_H = 13;
+    const LABEL_FONT = '11.5px ui-monospace, "SF Mono", Menlo, monospace';
+
+    let W = 0,
+      H = 0,
+      DPR = 1;
+    const cam = { x: 0, y: 0, z: 1 };
+    let hover: N | null = null;
+    let active: N | null = null;
+    let filter = 'all';
+    let labelDy: number[] = nodes.map(() => 0);
+    let laidOutAt = -1;
+    // Once the reader pans or zooms, the view is theirs — stop re-framing it.
+    let userMoved = false;
+    const t0 = performance.now();
+
+    const neighbours = new Map<number, Set<number>>();
+    nodes.forEach((_, i) => neighbours.set(i, new Set([i])));
+    for (const [a, b] of edges) {
+      neighbours.get(a)!.add(b);
+      neighbours.get(b)!.add(a);
+    }
+    const indexOf = new Map(nodes.map((n, i) => [n.slug, i]));
+
+    const scale = () => BASE * cam.z;
+    const visible = (n: N) => filter === 'all' || n.state === filter;
+    const drift = (i: number, tm: number, axis: number) =>
+      Math.sin(tm / (3400 + i * 130) + i * 1.7 + axis * 2.1) * 0.0075;
+    const sx = (n: N, i: number, tm: number) => W / 2 + cam.x + (n.x + drift(i, tm, 0)) * scale();
+    const sy = (n: N, i: number, tm: number) => H / 2 + cam.y + (n.y + drift(i, tm, 1)) * scale();
+
+    // ---------- sizing ----------
+    function resize() {
+      DPR = Math.min(window.devicePixelRatio || 1, 2);
+      W = cv!.clientWidth;
+      H = cv!.clientHeight;
+      if (!W || !H) return;
+      cv!.width = W * DPR;
+      cv!.height = H * DPR;
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      laidOutAt = -1;
+    }
+
+    /** Frame the whole graph, whatever spread the embeddings produced. */
+    function fit() {
+      // Guard against running before the layout has a real viewport — an early
+      // fit with a placeholder height clamps to minimum zoom and never recovers.
+      if (W < 200 || H < 200 || !nodes.length) return;
+      const xs = nodes.map((n) => n.x);
+      const ys = nodes.map((n) => n.y);
+      const minX = Math.min(...xs),
+        maxX = Math.max(...xs);
+      const minY = Math.min(...ys),
+        maxY = Math.max(...ys);
+      const spanX = Math.max(maxX - minX, 0.25);
+      const spanY = Math.max(maxY - minY, 0.25);
+      // Padding leaves room for labels, which extend well past their node.
+      const padX = 130,
+        padY = 110;
+      const z = Math.min((W - padX * 2) / (spanX * BASE), (H - padY * 2) / (spanY * BASE), 2.0);
+      cam.z = Math.max(0.4, z);
+      cam.x = (-(minX + maxX) / 2) * BASE * cam.z;
+      cam.y = (-(minY + maxY) / 2) * BASE * cam.z;
+    }
+
+    /**
+     * Push overlapping labels apart vertically. Runs only when the zoom changes,
+     * not per frame — relative label geometry depends on scale, not on pan.
+     */
+    function layoutLabels() {
+      const s = scale();
+      ctx.font = LABEL_FONT;
+      const L = nodes.map((n) => ({
+        x: n.x * s,
+        y: n.y * s,
+        w: ctx.measureText(n.label).width,
+        dy: 0,
+      }));
+
+      for (let iter = 0; iter < 140; iter++) {
+        for (let a = 0; a < L.length; a++) {
+          for (let b = a + 1; b < L.length; b++) {
+            const A = L[a]!,
+              B = L[b]!;
+            if (Math.abs(A.x - B.x) > (A.w + B.w) / 2 + 12) continue;
+            const d = B.y + B.dy - (A.y + A.dy);
+            const gap = LINE_H + 4;
+            if (Math.abs(d) < gap) {
+              const push = ((gap - Math.abs(d)) / 2) * 0.6;
+              const sign = d >= 0 ? 1 : -1;
+              A.dy -= push * sign;
+              B.dy += push * sign;
+            }
+          }
+        }
+        for (const A of L) A.dy *= 0.995; // gentle pull back toward the node
+      }
+      labelDy = L.map((l) => l.dy);
+      laidOutAt = cam.z;
+    }
+
+    // ---------- render ----------
+    function draw() {
+      requestAnimationFrame(draw);
+      if (!W || !H) return;
+      if (laidOutAt !== cam.z) layoutLabels();
+
+      const tm = performance.now() - t0;
+      ctx.clearRect(0, 0, W, H);
+
+      // dot grid
+      const step = 46 * cam.z;
+      if (step > 12) {
+        ctx.fillStyle = '#141416';
+        const ox = ((cam.x % step) + step) % step;
+        const oy = ((cam.y % step) + step) % step;
+        for (let x = ox; x < W; x += step)
+          for (let y = oy; y < H; y += step) ctx.fillRect(x, y, 1, 1);
+      }
+
+      const px = nodes.map((n, i) => [sx(n, i, tm), sy(n, i, tm)] as const);
+      const focus = hover ?? active;
+      const fi = focus ? indexOf.get(focus.slug)! : -1;
+      const near = fi >= 0 ? neighbours.get(fi)! : null;
+
+      for (const [a, b] of edges) {
+        let al = 0.3;
+        if (!visible(nodes[a]!) || !visible(nodes[b]!)) al *= 0.15;
+        if (near) al = near.has(a) && near.has(b) ? 1 : al * 0.22;
+        ctx.strokeStyle = `rgba(125,122,117,${0.3 * al})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(px[a]![0], px[a]![1]);
+        ctx.lineTo(px[b]![0], px[b]![1]);
+        ctx.stroke();
+      }
+
+      const order = ['learning', 'executing', 'reported'];
+      const drawOrder = nodes
+        .map((_, i) => i)
+        .sort((i, j) => order.indexOf(nodes[i]!.state) - order.indexOf(nodes[j]!.state));
+
+      ctx.font = LABEL_FONT;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+
+      for (const i of drawOrder) {
+        const n = nodes[i]!;
+        const [x, y] = px[i]!;
+        let al = visible(n) ? 1 : 0.16;
+        if (near && !near.has(i)) al *= 0.3;
+        const isFocus = fi === i;
+        const r = (n.state === 'reported' ? 6.5 : 5.5) * (isFocus ? 1.5 : 1);
+
+        if (n.state === 'executing') {
+          const ph = (tm / 1500 + i * 0.4) % 1;
+          ctx.beginPath();
+          ctx.arc(x, y, r + ph * 16, 0, 7);
+          ctx.strokeStyle = `rgba(216,161,58,${(1 - ph) * 0.4 * al})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, 7);
+          ctx.fillStyle = `rgba(216,161,58,${0.22 * al})`;
+          ctx.fill();
+          ctx.strokeStyle = `rgba(216,161,58,${0.95 * al})`;
+          ctx.lineWidth = 1.4;
+          ctx.stroke();
+        } else if (n.state === 'reported') {
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, 7);
+          ctx.fillStyle = `rgba(233,230,225,${0.95 * al})`;
+          ctx.fill();
+          if (isFocus) {
+            ctx.beginPath();
+            ctx.arc(x, y, r + 7, 0, 7);
+            ctx.strokeStyle = `rgba(233,230,225,${0.35 * al})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        } else {
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, 7);
+          ctx.setLineDash([2, 3]);
+          ctx.strokeStyle = `rgba(122,119,113,${0.85 * al})`;
+          ctx.lineWidth = 1.1;
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        const bright = n.state === 'reported' ? 0.92 : n.state === 'executing' ? 0.8 : 0.5;
+        ctx.fillStyle = isFocus
+          ? `rgba(233,230,225,${al})`
+          : `rgba(233,230,225,${bright * al * 0.8})`;
+        ctx.fillText(n.label, x, y + r + LABEL_GAP + (labelDy[i] ?? 0));
+      }
+    }
+
+    // ---------- interaction ----------
+    function pick(mx: number, my: number): N | null {
+      const tm = performance.now() - t0;
+      let best: N | null = null;
+      let bd = 26;
+      nodes.forEach((n, i) => {
+        if (!visible(n)) return;
+        const d = Math.hypot(sx(n, i, tm) - mx, sy(n, i, tm) - my);
+        if (d < bd) {
+          bd = d;
+          best = n;
+        }
+      });
+      return best;
+    }
+
+    let dragging = false,
+      moved = false,
+      last: [number, number] = [0, 0];
+
+    cv.addEventListener('pointerdown', (e) => {
+      dragging = true;
+      moved = false;
+      last = [e.clientX, e.clientY];
+      cv!.classList.add('dragging');
+    });
+    window.addEventListener('pointerup', () => {
+      dragging = false;
+      cv!.classList.remove('dragging');
+    });
+    cv.addEventListener('pointermove', (e) => {
+      if (dragging) {
+        const dx = e.clientX - last[0];
+        const dy = e.clientY - last[1];
+        if (Math.abs(dx) + Math.abs(dy) > 2) moved = userMoved = true;
+        cam.x += dx;
+        cam.y += dy;
+        last = [e.clientX, e.clientY];
+      } else {
+        hover = pick(e.clientX, e.clientY);
+        cv!.style.cursor = hover ? 'pointer' : 'grab';
+      }
+    });
+    cv.addEventListener('click', (e) => {
+      if (moved) return;
+      const n = pick(e.clientX, e.clientY);
+      if (n) open(n.slug, true);
+      else close(true);
+    });
+    cv.addEventListener(
+      'wheel',
+      (e) => {
+        e.preventDefault();
+        userMoved = true;
+        const f = Math.exp(-e.deltaY * 0.0012);
+        const nz = Math.min(2.6, Math.max(0.4, cam.z * f));
+        const k = nz / cam.z;
+        cam.x = e.clientX - (e.clientX - (W / 2 + cam.x)) * k - W / 2;
+        cam.y = e.clientY - (e.clientY - (H / 2 + cam.y)) * k - H / 2;
+        cam.z = nz;
+      },
+      { passive: false },
+    );
+
+    // ---------- panel ----------
+    const panel = document.getElementById('panel')!;
+    const body = document.getElementById('panel-body')!;
+
+    function open(slug: string, push: boolean) {
+      const source = document.querySelector(`[data-entry="${CSS.escape(slug)}"]`);
+      if (!source) return;
+      body.replaceChildren(...Array.from(source.cloneNode(true).childNodes));
+      panel.classList.add('open');
+      panel.setAttribute('aria-hidden', 'false');
+      panel.scrollTop = 0;
+      active = nodes.find((n) => n.slug === slug) ?? null;
+      if (push) history.pushState({ slug }, '', `/e/${slug}/`);
+    }
+
+    function close(push: boolean) {
+      panel.classList.remove('open');
+      panel.setAttribute('aria-hidden', 'true');
+      active = null;
+      if (push && location.pathname !== '/') history.pushState(null, '', '/');
+    }
+
+    document.getElementById('panel-close')!.addEventListener('click', () => close(true));
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') close(true);
+    });
+    window.addEventListener('popstate', (e) => {
+      const slug = (e.state as { slug?: string } | null)?.slug;
+      if (slug) open(slug, false);
+      else close(false);
+    });
+
+    // ---------- filters ----------
+    document.getElementById('filters')!.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest('button');
+      if (!btn) return;
+      filter = btn.dataset.f!;
+      for (const b of Array.from(btn.parentElement!.children))
+        b.setAttribute('aria-pressed', String(b === btn));
+    });
+
+    // ---------- go ----------
+    new ResizeObserver(() => {
+      resize();
+      if (!userMoved) fit();
+    }).observe(cv);
+    resize();
+    fit();
+    requestAnimationFrame(draw);
+  }
+</script>

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shamirai.ai — prototype A — frontier map</title>
+<style>
+  :root {
+    --bg:      #0b0b0c;
+    --grid:    #17171a;
+    --dim:     #4a4845;
+    --mid:     #7d7a75;
+    --fg:      #e9e6e1;
+    --signal:  #d8a13a;
+    --line:    #232326;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font-family: var(--mono); overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  canvas { display: block; position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; }
+  canvas.dragging { cursor: grabbing; }
+
+  /* ---- chrome ---- */
+  header {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 5;
+    padding: 22px 26px; pointer-events: none;
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 24px;
+  }
+  .wordmark { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; }
+  .wordmark b { font-weight: 600; }
+  .wordmark span { color: var(--dim); }
+  .tagline {
+    margin-top: 7px; font-size: 11.5px; color: var(--mid);
+    letter-spacing: .02em; max-width: 30ch; line-height: 1.5;
+  }
+  .counts { font-size: 11px; color: var(--dim); text-align: right; line-height: 1.9; letter-spacing: .04em; }
+  .counts b { color: var(--mid); font-weight: 400; }
+
+  /* ---- filters ---- */
+  .filters {
+    position: absolute; left: 26px; bottom: 24px; z-index: 5;
+    display: flex; gap: 6px;
+  }
+  .filters button {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--mid);
+    background: transparent; border: 1px solid var(--line);
+    padding: 7px 12px; cursor: pointer; transition: .16s;
+  }
+  .filters button:hover { color: var(--fg); border-color: var(--dim); }
+  .filters button[data-on="1"] { color: var(--bg); background: var(--fg); border-color: var(--fg); }
+
+  .hint {
+    position: absolute; right: 26px; bottom: 26px; z-index: 5;
+    font-size: 10.5px; color: #35343a; letter-spacing: .06em;
+  }
+
+  /* ---- detail panel ---- */
+  #panel {
+    position: absolute; top: 0; right: 0; bottom: 0; width: min(430px, 90vw);
+    background: #0e0e10; border-left: 1px solid var(--line); z-index: 10;
+    transform: translateX(102%); transition: transform .42s cubic-bezier(.22,.9,.3,1);
+    overflow-y: auto; padding: 26px 30px 60px;
+  }
+  #panel.open { transform: none; }
+  .p-close {
+    position: absolute; top: 20px; right: 22px; background: none; border: 0;
+    color: var(--dim); font-family: var(--mono); font-size: 16px; cursor: pointer; line-height: 1;
+  }
+  .p-close:hover { color: var(--fg); }
+  .p-state {
+    font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--dim);
+  }
+  .p-state i { font-style: normal; }
+  #panel h2 {
+    font-family: var(--mono); font-size: 19px; font-weight: 500; line-height: 1.35;
+    margin: 10px 0 4px; letter-spacing: -.01em;
+  }
+  .p-meta { font-size: 11px; color: var(--dim); letter-spacing: .05em; margin-bottom: 26px; }
+  .beat { margin-bottom: 22px; }
+  .beat h3 {
+    font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--signal); font-weight: 500; margin: 0 0 8px;
+  }
+  .beat p {
+    font-family: var(--serif); font-size: 15px; line-height: 1.62;
+    color: #cbc7c0; margin: 0;
+  }
+  .p-links { margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--line); display: flex; gap: 18px; }
+  .p-links a {
+    font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--fg); text-decoration: none; border-bottom: 1px solid var(--dim); padding-bottom: 3px;
+  }
+  .p-links a:hover { border-color: var(--signal); color: var(--signal); }
+  .p-empty { font-family: var(--serif); font-size: 15px; line-height: 1.62; color: var(--mid); }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<header>
+  <div>
+    <div class="wordmark"><b>shamirai</b><span>.ai</span></div>
+    <div class="tagline">a live map of what I'm learning, what I'm building, and what I finished.</div>
+  </div>
+  <div class="counts" id="counts"></div>
+</header>
+
+<div class="filters" id="filters">
+  <button data-f="all" data-on="1">all</button>
+  <button data-f="learning">learning</button>
+  <button data-f="executing">executing</button>
+  <button data-f="reported">reported</button>
+</div>
+
+<div class="hint">drag to pan · scroll to zoom · click a node</div>
+
+<aside id="panel">
+  <button class="p-close" id="pclose">✕</button>
+  <div id="pbody"></div>
+</aside>
+
+<script>
+// ---------------------------------------------------------------- data
+const N = [
+  // --- agent architectures
+  { id:1,  label:"ReAct loops",                  c:0, s:"learning",  x:-0.66, y:-0.47, d:"—" },
+  { id:2,  label:"Multi-agent orchestration",    c:0, s:"reported",  x:-0.44, y:-0.22, d:"2026-05-18",
+    n:{ q:"If I split a task across three specialised agents instead of one generalist, does quality actually go up — or do I just pay 3× the tokens for the same answer?",
+        b:"A planner/worker/critic trio over a research task, all on Workers AI. Shared scratchpad in a Durable Object so agents read each other's partial output instead of re-deriving it.",
+        s:"The critic was the whole value. Planner+worker alone was slightly worse than a single agent — the handoff lost context. Adding the critic flipped it. Also: 3× agents was not 3× cost, it was 5.2×, because every handoff re-sends context.",
+        w:"Start with the critic. I built the fun part (orchestration) first and the part that actually mattered last. Next time I test the cheapest possible version of the hypothesis before building the architecture." } },
+  { id:3,  label:"Context compaction",           c:0, s:"executing",  x:-0.58, y:-0.14, d:"in progress",
+    n:{ q:"How do long-running agents decide what to forget? Summarising every N turns feels lossy in a way nobody quantifies.",
+        b:"Half-built: a compactor that scores each turn for future-relevance before dropping it, rather than summarising chronologically." } },
+  { id:4,  label:"Tool-use error recovery",      c:0, s:"reported",  x:-0.38, y:-0.36, d:"2026-04-02",
+    n:{ q:"When a tool call fails, is it better to hand the raw error back to the model or to translate it into an instruction?",
+        b:"A harness that wraps 6 tools and can run in three modes: raw error, translated error, or translated error + one suggested fix. Ran 200 induced failures through each.",
+        s:"Raw stack traces beat my hand-written friendly messages. The model reads tracebacks better than it reads my prose. My 'helpful' translation was destroying the signal it needed.",
+        w:"I'd stop assuming the model wants what a human wants. Half my design instincts here were transferred from UX and were actively wrong." } },
+  // --- retrieval
+  { id:5,  label:"Vector search",                c:1, s:"reported",  x: 0.20, y:-0.54, d:"2026-03-11",
+    n:{ q:"Do I actually understand what an embedding is, or have I just been calling an API?",
+        b:"Built cosine similarity search from scratch over 4k of my own notes — no library. Then swapped in Vectorize and compared results.",
+        s:"My naive version matched Vectorize's ranking ~90% of the time on this corpus. The remaining 10% were all cases where my chunking was bad, not where my math was bad. Retrieval quality was a data problem, not an algorithm problem.",
+        w:"Nothing — this was the highest value-per-hour thing I've built. Writing the dumb version first is now my default." } },
+  { id:6,  label:"Hybrid BM25 + dense",          c:1, s:"learning",  x: 0.48, y:-0.44, d:"—" },
+  { id:7,  label:"Chunking strategies",          c:1, s:"executing", x: 0.22, y:-0.33, d:"in progress",
+    n:{ q:"Every chunking guide gives different numbers and none of them show their evaluation. Can I generate my own answer for my own corpus?",
+        b:"A harness that re-chunks the same corpus 12 ways and scores retrieval against a hand-labelled question set." } },
+  { id:8,  label:"Late interaction / ColBERT",   c:1, s:"learning",  x: 0.52, y:-0.24, d:"—" },
+  // --- evals
+  { id:9,  label:"LLM-as-judge",                 c:2, s:"reported",  x: 0.48, y: 0.14, d:"2026-06-09",
+    n:{ q:"Can a model reliably grade another model's output, or does it just reward things that look like its own writing?",
+        b:"Scored 300 outputs with three judge configs against my own blind human labels.",
+        s:"Position bias was brutal — swapping A/B order changed the verdict 23% of the time. Once I randomised order and averaged both directions, agreement with my labels jumped from 61% to 84%. The judge wasn't bad, my harness was.",
+        w:"I nearly published the 61% result as 'LLM judges are unreliable.' That would have been a confidently wrong post. Now I try to break my harness before I trust a negative result." } },
+  { id:10, label:"Agent trajectory eval",        c:2, s:"executing", x: 0.62, y: 0.26, d:"in progress",
+    n:{ q:"Final-answer accuracy hides everything interesting. How do you score the *path* an agent took?",
+        b:"Logging full tool-call traces and trying to score them on redundancy, recovery, and dead ends." } },
+  { id:11, label:"Prompt regression suites",     c:2, s:"learning",  x: 0.42, y: 0.42, d:"—" },
+  // --- runtime
+  { id:12, label:"Workers AI at the edge",       c:3, s:"reported",  x:-0.44, y: 0.36, d:"2026-02-20",
+    n:{ q:"How much of an agent can run at the edge with no origin server and no API key?",
+        b:"A summariser running entirely on Cloudflare Workers AI — inference, embeddings, and storage all inside one Worker.",
+        s:"Cold-start inference was far better than I expected, but the model catalogue is the real constraint, not the runtime. I spent more time working around model availability than writing code.",
+        w:"I'd pick the model first and design around its limits, instead of designing the system and then shopping for a model that fits." } },
+  { id:13, label:"Durable Objects as agent state", c:3, s:"executing", x:-0.30, y: 0.48, d:"in progress",
+    n:{ q:"Is a Durable Object a good home for a single agent's memory — one object per conversation, alive between calls?",
+        b:"Prototyping one DO per agent session holding the scratchpad and tool history." } },
+  { id:14, label:"Streaming + backpressure",     c:3, s:"learning",  x:-0.58, y: 0.58, d:"—" },
+  // --- mcp
+  { id:15, label:"MCP server authoring",         c:4, s:"reported",  x:-0.06, y: 0.02, d:"2026-07-14",
+    n:{ q:"What does it actually take to expose my own data to an agent as first-class tools?",
+        b:"An MCP server over my personal notes with four tools: search, read, link, and recent.",
+        s:"Tool *descriptions* did more for reliability than tool design. Rewriting one description — being explicit about when NOT to call it — cut spurious calls by more than half. The prose is the interface.",
+        w:"I'd write the tool descriptions before the implementations, as a design exercise. They're the actual API surface." } },
+  { id:16, label:"Sampling & elicitation",       c:4, s:"learning",  x: 0.10, y: 0.12, d:"—" },
+];
+const E = [[1,2],[2,3],[2,4],[3,4],[5,6],[5,7],[6,8],[7,8],[9,10],[10,11],[9,11],
+           [12,13],[13,14],[12,14],[15,16],[2,15],[4,9],[3,5],[13,2],[10,2],[15,12]];
+
+const byId = Object.fromEntries(N.map(n => [n.id, n]));
+const STATE_ORDER = { learning:0, executing:1, reported:2 };
+
+// ---------------------------------------------------------------- setup
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+let W=0, H=0, DPR=1;
+let cam = { x:0, y:0, z:1 };          // pan offset (screen px) + zoom
+let hover = null, active = null, filter = 'all';
+let t0 = performance.now();
+
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = cv.clientWidth; H = cv.clientHeight;
+  cv.width = W*DPR; cv.height = H*DPR;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+new ResizeObserver(resize).observe(cv);
+resize();
+
+// world -> screen
+function scale(){ return Math.min(W,H) * 0.62 * cam.z; }
+function sx(n, tm){ return W/2 + cam.x + (n.x + drift(n,tm,0)) * scale(); }
+function sy(n, tm){ return H/2 + cam.y + (n.y + drift(n,tm,1)) * scale(); }
+function drift(n, tm, axis){
+  const p = n.id * 1.7 + axis * 2.1;
+  return Math.sin(tm/(3400 + n.id*130) + p) * 0.0075;
+}
+
+function visible(n){ return filter === 'all' || n.s === filter; }
+
+// ---------------------------------------------------------------- render
+function draw(){
+  const tm = performance.now() - t0;
+  ctx.clearRect(0,0,W,H);
+  drawGrid();
+
+  const pos = new Map();
+  for (const n of N) pos.set(n.id, [sx(n,tm), sy(n,tm)]);
+
+  const focus = hover || active;
+  const near = new Set();
+  if (focus){ near.add(focus.id); for (const [a,b] of E){ if(a===focus.id) near.add(b); if(b===focus.id) near.add(a); } }
+
+  // edges
+  for (const [a,b] of E){
+    const na = byId[a], nb = byId[b];
+    const [ax,ay] = pos.get(a), [bx,by] = pos.get(b);
+    let al = 0.5;
+    if (!visible(na) || !visible(nb)) al *= 0.15;
+    if (focus) al = (near.has(a) && near.has(b)) ? 1 : al * 0.22;
+    ctx.strokeStyle = `rgba(125,122,117,${0.30*al})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by); ctx.stroke();
+  }
+
+  // nodes (draw dim first so bright ones sit on top)
+  const sorted = [...N].sort((a,b)=> STATE_ORDER[a.s]-STATE_ORDER[b.s]);
+  for (const n of sorted){
+    const [x,y] = pos.get(n.id);
+    let al = visible(n) ? 1 : 0.16;
+    if (focus && !near.has(n.id)) al *= 0.3;
+    const isFocus = focus && focus.id === n.id;
+    const r = (n.s === 'reported' ? 6.5 : 5.5) * (isFocus ? 1.5 : 1);
+
+    if (n.s === 'executing'){
+      // pulsing halo
+      const ph = (tm/1500 + n.id*0.4) % 1;
+      ctx.beginPath(); ctx.arc(x,y, r + ph*16, 0, 7);
+      ctx.strokeStyle = `rgba(216,161,58,${(1-ph)*0.4*al})`; ctx.lineWidth = 1; ctx.stroke();
+      ctx.beginPath(); ctx.arc(x,y,r,0,7);
+      ctx.fillStyle = `rgba(216,161,58,${0.22*al})`; ctx.fill();
+      ctx.strokeStyle = `rgba(216,161,58,${0.95*al})`; ctx.lineWidth = 1.4; ctx.stroke();
+    } else if (n.s === 'reported'){
+      ctx.beginPath(); ctx.arc(x,y,r,0,7);
+      ctx.fillStyle = `rgba(233,230,225,${0.95*al})`; ctx.fill();
+      if (isFocus){ ctx.beginPath(); ctx.arc(x,y,r+7,0,7);
+        ctx.strokeStyle = `rgba(233,230,225,${0.35*al})`; ctx.lineWidth=1; ctx.stroke(); }
+    } else {
+      ctx.beginPath(); ctx.arc(x,y,r,0,7);
+      ctx.setLineDash([2,3]);
+      ctx.strokeStyle = `rgba(122,119,113,${0.85*al})`; ctx.lineWidth = 1.1; ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // label
+    const bright = n.s === 'reported' ? 0.92 : n.s === 'executing' ? 0.8 : 0.5;
+    ctx.font = `${isFocus?'500 ':''}11.5px ui-monospace, "SF Mono", Menlo, monospace`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillStyle = isFocus ? `rgba(233,230,225,${al})` : `rgba(233,230,225,${bright*al*0.8})`;
+    ctx.fillText(n.label, x, y + r + 9);
+  }
+  requestAnimationFrame(draw);
+}
+
+function drawGrid(){
+  const step = 46 * cam.z;
+  ctx.fillStyle = '#141416';
+  const ox = (cam.x % step + step) % step, oy = (cam.y % step + step) % step;
+  for (let x = ox; x < W; x += step)
+    for (let y = oy; y < H; y += step){ ctx.fillRect(x, y, 1, 1); }
+}
+requestAnimationFrame(draw);
+
+// ---------------------------------------------------------------- interaction
+function pick(mx,my){
+  const tm = performance.now() - t0;
+  let best=null, bd=26;
+  for (const n of N){
+    if (!visible(n)) continue;
+    const d = Math.hypot(sx(n,tm)-mx, sy(n,tm)-my);
+    if (d < bd){ bd = d; best = n; }
+  }
+  return best;
+}
+
+let dragging=false, moved=false, last=[0,0];
+cv.addEventListener('mousedown', e => { dragging=true; moved=false; last=[e.clientX,e.clientY]; cv.classList.add('dragging'); });
+window.addEventListener('mouseup', () => { dragging=false; cv.classList.remove('dragging'); });
+cv.addEventListener('mousemove', e => {
+  if (dragging){
+    const dx = e.clientX-last[0], dy = e.clientY-last[1];
+    if (Math.abs(dx)+Math.abs(dy) > 2) moved = true;
+    cam.x += dx; cam.y += dy; last=[e.clientX,e.clientY];
+  } else {
+    const h = pick(e.clientX, e.clientY);
+    hover = h; cv.style.cursor = h ? 'pointer' : 'grab';
+  }
+});
+cv.addEventListener('click', e => {
+  if (moved) return;
+  const n = pick(e.clientX, e.clientY);
+  if (n) open(n); else close();
+});
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  const f = Math.exp(-e.deltaY * 0.0012);
+  const nz = Math.min(2.6, Math.max(0.55, cam.z * f));
+  const k = nz / cam.z;
+  cam.x = e.clientX - (e.clientX - (W/2 + cam.x)) * k - W/2;
+  cam.y = e.clientY - (e.clientY - (H/2 + cam.y)) * k - H/2;
+  cam.z = nz;
+}, { passive:false });
+
+// ---------------------------------------------------------------- panel
+const panel = document.getElementById('panel'), pbody = document.getElementById('pbody');
+const STATE_LABEL = { learning:'learning', executing:'executing', reported:'reported' };
+
+function open(n){
+  active = n;
+  const dot = n.s==='reported' ? '●' : n.s==='executing' ? '◐' : '○';
+  let html = `<div class="p-state"><i style="color:${n.s==='executing'?'var(--signal)':n.s==='reported'?'var(--fg)':'var(--dim)'}">${dot}</i>&nbsp; ${STATE_LABEL[n.s]}</div>
+    <h2>${n.label}</h2>
+    <div class="p-meta">${n.d}</div>`;
+
+  if (!n.n){
+    html += `<div class="p-empty">Nothing written yet. This is on the map because I want to understand it — the node exists so I can see the gap.</div>`;
+  } else {
+    const beats = [["the question", n.n.q], ["what I built", n.n.b], ["what surprised me", n.n.s], ["what I'd do differently", n.n.w]];
+    for (const [h, body] of beats){
+      if (!body) continue;
+      html += `<div class="beat"><h3>${h}</h3><p>${body}</p></div>`;
+    }
+    if (n.s === 'executing') html += `<div class="beat"><h3>still open</h3><p style="color:var(--mid)">Not finished — the last two beats get written when it is.</p></div>`;
+    if (n.s === 'reported') html += `<div class="p-links"><a href="#">repo</a><a href="#">live</a></div>`;
+  }
+  pbody.innerHTML = html;
+  panel.classList.add('open');
+}
+function close(){ active = null; panel.classList.remove('open'); }
+document.getElementById('pclose').onclick = close;
+window.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+
+// ---------------------------------------------------------------- filters + counts
+document.getElementById('filters').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  filter = b.dataset.f;
+  [...e.currentTarget.children].forEach(x => x.dataset.on = x === b ? '1' : '0');
+});
+const c = s => N.filter(n => n.s === s).length;
+document.getElementById('counts').innerHTML =
+  `<b>${N.length}</b> nodes<br><b>${c('reported')}</b> reported · <b>${c('executing')}</b> executing · <b>${c('learning')}</b> learning`;
+</script>
+</body>
+</html>

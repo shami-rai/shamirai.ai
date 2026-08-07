@@ -1,0 +1,156 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { clusterLabel } from '../lib/clusters';
+
+interface Props {
+  entries: CollectionEntry<'entries'>[];
+}
+
+const { entries } = Astro.props;
+
+// executing first (what's live right now), then finished newest-first, then the gaps.
+const rank = { executing: 0, reported: 1, learning: 2 } as const;
+const sorted = [...entries].sort((a, b) => {
+  const r = rank[a.data.state] - rank[b.data.state];
+  if (r !== 0) return r;
+  return (b.data.date?.getTime() ?? 0) - (a.data.date?.getTime() ?? 0);
+});
+
+const firstLearning = sorted.findIndex((e) => e.data.state === 'learning');
+---
+
+<div class="index-view">
+  <a href="/" class="wordmark"><b>shamirai</b><span>.ai</span></a>
+  <p class="tagline">learn, execute, report. mostly for me.</p>
+
+  <div class="rule"></div>
+
+  {
+    sorted.map((e, i) => (
+      <>
+        {i === firstLearning && firstLearning !== -1 && <p class="section">queued — not started</p>}
+        <a class="row" href={`/e/${e.id}/`}>
+          <canvas class="sigil" data-title={e.data.title} data-state={e.data.state} />
+          <span class="body">
+            <span class="title">{e.data.title}</span>
+            <span class="sub">
+              <span class={`chip ${e.data.state}`}>{e.data.state}</span>
+              <span class="cluster">{clusterLabel(e.data.cluster)}</span>
+            </span>
+            {e.data.summary && <span class="summary">{e.data.summary}</span>}
+          </span>
+          <span class="date">
+            {e.data.date
+              ? e.data.date.toISOString().slice(0, 10)
+              : e.data.state === 'executing'
+                ? 'in progress'
+                : '—'}
+          </span>
+        </a>
+      </>
+    ))
+  }
+</div>
+
+<style>
+  .index-view {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 54px 24px 120px;
+  }
+  .tagline {
+    margin: 9px 0 0;
+    font-size: 12px;
+    color: var(--mid);
+    line-height: 1.6;
+  }
+  .rule {
+    margin-top: 30px;
+    border-top: 1px solid var(--line);
+  }
+  .section {
+    margin: 40px 0 0;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #35343a;
+  }
+
+  .summary {
+    display: block;
+    margin-top: 9px;
+    font-family: var(--serif);
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--mid);
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 54px 1fr auto;
+    align-items: start;
+    gap: 18px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--line);
+    text-decoration: none;
+    color: inherit;
+  }
+  .sigil {
+    width: 54px;
+    height: 54px;
+    display: block;
+  }
+  .title {
+    display: block;
+    font-size: 15px;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+  .sub {
+    display: flex;
+    gap: 12px;
+    margin-top: 7px;
+  }
+  .cluster {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  .date {
+    font-size: 11px;
+    color: var(--dim);
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+  .row:active .title {
+    color: var(--signal);
+  }
+
+  @media (min-width: 760px) {
+    .index-view {
+      display: none;
+    }
+  }
+  @media (max-width: 420px) {
+    .date {
+      display: none;
+    }
+    .row {
+      grid-template-columns: 44px 1fr;
+      gap: 14px;
+    }
+    .sigil {
+      width: 44px;
+      height: 44px;
+    }
+  }
+</style>
+
+<script>
+  import { drawSigil } from '../lib/sigil';
+
+  for (const cv of document.querySelectorAll<HTMLCanvasElement>('canvas.sigil')) {
+    drawSigil(cv, cv.dataset.title ?? '', (cv.dataset.state ?? 'learning') as any);
+  }
+</script>

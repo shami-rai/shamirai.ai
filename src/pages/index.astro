@@ -1,0 +1,38 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Map from '../components/Map.astro';
+import EntryIndex from '../components/EntryIndex.astro';
+import EntryArticle from '../components/EntryArticle.astro';
+import { layoutNodes } from '../lib/positions';
+import type { MapNode } from '../lib/graph';
+
+const entries = await getCollection('entries');
+
+const placed = layoutNodes(
+  entries.map((e) => ({ slug: e.id, cluster: e.data.cluster, position: e.data.position })),
+);
+
+const nodes: MapNode[] = entries.map((e) => {
+  const [x, y] = placed.get(e.id)!;
+  return { slug: e.id, label: e.data.title, state: e.data.state, cluster: e.data.cluster, x, y };
+});
+---
+
+<Base title="shamirai.ai" fixed>
+  <Map nodes={nodes} />
+  <EntryIndex entries={entries} />
+
+  {/* Every entry, rendered once and hidden. The map panel clones from here, so
+      opening a node costs no network round trip and the content is in the HTML
+      whether or not the canvas ever runs. */}
+  <div hidden>
+    {
+      entries.map((entry) => (
+        <div data-entry={entry.id}>
+          <EntryArticle entry={entry} />
+        </div>
+      ))
+    }
+  </div>
+</Base>

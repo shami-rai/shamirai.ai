@@ -1,0 +1,43 @@
+---
+import { getCollection, type CollectionEntry } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import EntryArticle from '../../components/EntryArticle.astro';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('entries');
+  return entries.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+interface Props {
+  entry: CollectionEntry<'entries'>;
+}
+
+const { entry } = Astro.props;
+---
+
+<Base title={`${entry.data.title} — shamirai.ai`}>
+  <main>
+    <a href="/" class="back">← map</a>
+    <EntryArticle entry={entry} />
+  </main>
+</Base>
+
+<style>
+  main {
+    max-width: 62ch;
+    margin: 0 auto;
+    padding: 54px 24px 140px;
+  }
+  .back {
+    display: inline-block;
+    margin-bottom: 40px;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dim);
+    text-decoration: none;
+  }
+  .back:hover {
+    color: var(--fg);
+  }
+</style>

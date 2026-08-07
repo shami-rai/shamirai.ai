@@ -1,0 +1,87 @@
+---
+import { render, type CollectionEntry } from 'astro:content';
+import { clusterLabel } from '../lib/clusters';
+
+interface Props {
+  entry: CollectionEntry<'entries'>;
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const { title, state, cluster, date, repo, live, summary } = entry.data;
+
+const written = entry.body != null && entry.body.trim().length > 0;
+const stamp = date
+  ? date.toISOString().slice(0, 10)
+  : state === 'executing'
+    ? 'in progress'
+    : '—';
+
+const glyph = state === 'reported' ? '●' : state === 'executing' ? '◐' : '○';
+---
+
+<header class="head">
+  <div class={`chip ${state}`}>{glyph}&nbsp;&nbsp;{state}</div>
+  <h1>{title}</h1>
+  <div class="meta">{stamp} &nbsp;·&nbsp; {clusterLabel(cluster)}</div>
+  {summary && <p class="summary">{summary}</p>}
+</header>
+
+<div class="beats">
+  {
+    written ? (
+      <Content />
+    ) : (
+      <p class="unwritten">
+        Nothing written yet. It's on the map because I want to understand it — the node exists
+        so I can see the gap.
+      </p>
+    )
+  }
+</div>
+
+{
+  (repo || live) && (
+    <div class="links">
+      {repo && (
+        <a href={repo} rel="noopener noreferrer" target="_blank">
+          repo
+        </a>
+      )}
+      {live && (
+        <a href={live} rel="noopener noreferrer" target="_blank">
+          live
+        </a>
+      )}
+    </div>
+  )
+}
+
+<style>
+  .head {
+    margin-bottom: 26px;
+  }
+  h1 {
+    font-family: var(--mono);
+    font-size: 19px;
+    font-weight: 500;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+    margin: 10px 0 5px;
+  }
+  .meta {
+    font-size: 11px;
+    color: var(--dim);
+    letter-spacing: 0.05em;
+  }
+  /* Deliberately not styled like a beat — this is context, not a finding. */
+  .summary {
+    font-family: var(--serif);
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--mid);
+    margin: 18px 0 0;
+    padding-left: 14px;
+    border-left: 1px solid var(--line);
+  }
+</style>
