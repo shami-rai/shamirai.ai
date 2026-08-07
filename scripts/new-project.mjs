@@ -167,6 +167,23 @@ if (/^state:\s*learning\s*$/m.test(next)) {
   next = next.replace(/^state:\s*learning\s*$/m, 'state: executing');
   flipped = true;
 }
+
+// A learning stub has no body. Once it is executing it needs the beats, or the
+// entry renders the "nothing written yet" message that belongs to learning.
+// Beat 1 gets answered before building, not after: a question retrofitted to
+// match what you happened to find is not a question.
+if (!next.split(/^---$/m)[2]?.trim()) {
+  next = next.trimEnd() + `
+
+## The question
+
+## What I built
+
+## What surprised me
+
+## What I'd do differently
+`;
+}
 await writeFile(entryPath, next, 'utf8');
 
 console.log(`\n  repo      https://github.com/${owner}/${slug}`);
