@@ -1,0 +1,81 @@
+name: deploy
+
+# Push to main ships to shamirai.ai. Push any other branch gets a preview URL
+# on the same Pages project, which is how you look at a half-written entry on
+# the real map before it goes public.
+on:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # needed to commit a recomputed positions.json back
+      deployments: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Ahead of the local Node 20 on purpose: Astro 5 supports both, and
+          # this is the version the Astro 7 upgrade will need anyway.
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Entries are typed data — `state` is an enum, `cluster` is a key, and a
+      # typo in frontmatter should fail here rather than quietly ship a broken
+      # map. Three seconds well spent.
+      - name: Type check
+        run: npm run check
+
+      # Deliberately non-fatal. If Workers AI is unreachable or the token has
+      # expired, the committed positions.json is still a perfectly good layout —
+      # that's the whole point of resolving positions in layers. A dead embedding
+      # service should not be able to block a deploy.
+      - name: Recompute map positions
+        id: embed
+        continue-on-error: true
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npm run embed
+
+      # The projection is deterministic, so this is a no-op unless the content
+      # actually changed. Any diff on this file is real signal.
+      #
+      # Commits made with GITHUB_TOKEN do not trigger workflows, so this cannot
+      # recurse. `[skip ci]` is belt and braces.
+      - name: Commit positions if the map moved
+        if: github.ref == 'refs/heads/main'
+        run: |
+          if git diff --quiet -- src/data/positions.json; then
+            echo "map unchanged"
+            exit 0
+          fi
+          echo "map moved:"
+          git --no-pager diff --stat -- src/data/positions.json
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/positions.json
+          git commit -m "chore: recompute map positions [skip ci]"
+          git push
+
+      - run: npm run build
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # branch=main is what marks a deployment as production; anything else
+          # becomes a preview.
+          command: pages deploy dist --project-name=shamirai --branch=${{ github.ref_name }}
