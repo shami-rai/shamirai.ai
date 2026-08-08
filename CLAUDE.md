@@ -33,6 +33,13 @@ entry, so keep it specific.
 States: `learning` (no body, exists to mark a gap) → `executing` (beats 1–2) → `reported` (all
 four, plus `date:`).
 
+While a node is `executing`, only beats 1 and 2 get touched. Leave 3 and 4 empty: drafting "what
+surprised me" while still building steers the work toward a good story.
+
+Surprises go in `NOTES.md` as they happen, dated, unpolished, never published. Every project repo
+has one, and so does this repo, for the node about the site itself. Beat 3 is written at the end by
+selecting from that file rather than by remembering. Append to it without being asked.
+
 Clusters are keys in `src/lib/clusters.ts`. Add one there before using it in frontmatter.
 
 ## Starting a project for a node

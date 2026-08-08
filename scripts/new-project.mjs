@@ -125,6 +125,11 @@ part Shami wants to write, and hand that part over.
 Explaining an error is part of the work. When something breaks, say what the error actually means
 before fixing it.
 
+**Append to \`NOTES.md\` the moment something is surprising**, including your own wrong
+predictions and anything that broke unexpectedly. Do not wait to be asked, and do not tidy it up.
+The site's "what surprised me" beat is written weeks later from that file, and whatever is not
+captured at the time is simply lost.
+
 ## Why this shape
 
 The writeup on the site has a beat called "what surprised me". If Claude builds the whole thing
@@ -135,8 +140,24 @@ unattended, that beat is empty and the project had no point. The surprises are t
 Never use an em dash (\`—\`) anywhere: code, comments, commit messages, or prose.
 `;
 
+// Beat 3 on the site is written at the end, about things that happened at the
+// start. That is a memory problem, not a discipline problem, so catch them here
+// as they land. Never published; the site gets the selected version.
+const notes = `# Notes: ${title}
+
+Running log of surprises, dead ends and things that did not work as expected.
+Append the moment something is unexpected, do not wait. Newest at the bottom.
+
+This is raw material for the "what surprised me" beat on
+[shamirai.ai](https://shamirai.ai/e/${slug}/). It is not published, so it does
+not need to be tidy, fair, or well written.
+
+---
+`;
+
 await writeFile(join(dir, 'README.md'), readme, 'utf8');
 await writeFile(join(dir, 'CLAUDE.md'), claudeMd, 'utf8');
+await writeFile(join(dir, 'NOTES.md'), notes, 'utf8');
 await writeFile(join(dir, '.gitignore'), 'node_modules/\n.env\n.DS_Store\ndist/\n', 'utf8');
 
 run('git', ['init', '-q'], dir);
