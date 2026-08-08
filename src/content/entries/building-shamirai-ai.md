@@ -3,7 +3,7 @@ title: "Building shamirai.ai"
 state: executing
 cluster: runtime
 summary: "This site. A map of what I am learning rather than a list of what I have finished."
-repo: https://github.com/shamirai/shamirai.ai
+repo: https://github.com/shami-rai/shamirai.ai
 ---
 
 ## The question
