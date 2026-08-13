@@ -44,3 +44,16 @@ responds to what you say about a topic, not to its bookkeeping.
 **2026-08-08** The site's own entry linked to `github.com/shamirai/shamirai.ai` and 404'd. Written
 by hand before the account name was known. The scaffold script, which derives the owner from
 `gh api user` rather than trusting me, has been correct the whole time. Deriving beats typing.
+
+**2026-08-08** Finishing the loop-engineering writeup appeared to reshuffle the entire map: all 20
+nodes moved, most by nearly the full width of the space. It was an illusion. Pairwise distances
+correlated at 0.968, x kept its sign on every node and y flipped on every node. The map had mirrored
+vertically, not rearranged. PCA eigenvectors are only defined up to sign, so one substantial entry
+was enough to make the second component point the other way.
+
+Two things worth keeping from that. First, "positions changed" and "structure changed" are
+different claims, and only the second is interesting; the check that separates them is pairwise
+distance, which is invariant under rotation and reflection. Second, I had written in the README
+that any diff in positions.json means content changed. Technically true and practically useless,
+since a full-width diff that means "the axis flipped" trains you to ignore the file. Pinned the sign
+to the largest-magnitude loading, the svd_flip convention, and the whole diff went to zero.

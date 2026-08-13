@@ -75,6 +75,19 @@ function topComponent(M, d) {
   return v;
 }
 
+/**
+ * An eigenvector is only defined up to sign: v and -v describe the same axis.
+ * Power iteration will happily return either, so adding one substantial entry
+ * can flip a whole axis and mirror the map, producing a diff on every node that
+ * means nothing. Pin the sign to a convention: the largest-magnitude loading is
+ * positive. Same one scikit-learn's svd_flip uses.
+ */
+function canonicalSign(v) {
+  let big = 0;
+  for (let i = 1; i < v.length; i++) if (Math.abs(v[i]) > Math.abs(v[big])) big = i;
+  return v[big] < 0 ? v.map((x) => -x) : v;
+}
+
 function pca2(vectors) {
   const n = vectors.length;
   const d = vectors[0].length;
@@ -82,12 +95,12 @@ function pca2(vectors) {
   for (const v of vectors) for (let j = 0; j < d; j++) mean[j] += v[j] / n;
   const X = vectors.map((v) => v.map((val, j) => val - mean[j]));
 
-  const v1 = topComponent(X, d);
+  const v1 = canonicalSign(topComponent(X, d));
   const X2 = X.map((row) => {
     const s = dot(row, v1);
     return row.map((val, j) => val - s * v1[j]);
   });
-  const v2 = topComponent(X2, d);
+  const v2 = canonicalSign(topComponent(X2, d));
 
   return X.map((row) => [dot(row, v1), dot(row, v2)]);
 }
