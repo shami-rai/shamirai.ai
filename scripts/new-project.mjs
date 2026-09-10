@@ -158,7 +158,7 @@ not need to be tidy, fair, or well written.
 await writeFile(join(dir, 'README.md'), readme, 'utf8');
 await writeFile(join(dir, 'CLAUDE.md'), claudeMd, 'utf8');
 await writeFile(join(dir, 'NOTES.md'), notes, 'utf8');
-await writeFile(join(dir, '.gitignore'), 'node_modules/\n.env\n.DS_Store\ndist/\n', 'utf8');
+await writeFile(join(dir, '.gitignore'), 'node_modules/\n.env\n.DS_Store\ndist/\n\n# Raw running notes, local only. This repo is public; the edited version\n# goes on shamirai.ai as the "what surprised me" beat.\nNOTES.md\n', 'utf8');
 
 run('git', ['init', '-q'], dir);
 run('git', ['add', '-A'], dir);

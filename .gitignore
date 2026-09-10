@@ -5,3 +5,6 @@ dist/
 .env.local
 .DS_Store
 npm-debug.log*
+
+# Raw running notes, local only. This repo is public.
+NOTES.md

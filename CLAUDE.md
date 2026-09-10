@@ -37,7 +37,9 @@ While a node is `executing`, only beats 1 and 2 get touched. Leave 3 and 4 empty
 surprised me" while still building steers the work toward a good story.
 
 Surprises go in `NOTES.md` as they happen, dated, unpolished, never published. Every project repo
-has one, and so does this repo, for the node about the site itself. Beat 3 is written at the end by
+has one, and so does this repo, for the node about the site itself. It is gitignored
+everywhere, since every repo here is public: the working file stays local and only the edited
+version reaches the site. Beat 3 is written at the end by
 selecting from that file rather than by remembering. Append to it without being asked.
 
 Clusters are keys in `src/lib/clusters.ts`. Add one there before using it in frontmatter.
