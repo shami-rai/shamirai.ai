@@ -26,8 +26,9 @@ That writes one markdown file with the beats pre-filled and an empty `summary:` 
 Nothing else to touch. The map places it automatically.
 
 `summary` is one line saying what the topic **is**, not what you found, which is what the beats
-are for. It renders above the beats, and it matters more than it looks: on an entry you haven't
-written up, it's nearly all the signal `npm run embed` has to position the node with. A vague
+are for. It renders above the beats, and it matters more than it looks: together with the title
+and cluster, it is the only thing `npm run embed` uses to place the node. Writeups are never
+embedded, so finishing a report does not move its node, and editing its summary does. A vague
 summary produces a vague map.
 
 States:
@@ -87,12 +88,16 @@ cp .env.example .env   # then fill in CF_ACCOUNT_ID and CF_API_TOKEN
 npm run embed
 ```
 
-This embeds every entry with Workers AI (`@cf/baai/bge-base-en-v1.5`), projects 768 dimensions to
+This embeds each entry's title, summary and cluster with Workers AI (`@cf/baai/bge-base-en-v1.5`), projects 768 dimensions to
 2 with PCA, and writes `src/data/positions.json`. **Commit that file.** It is the layout, and it
 should be stable between builds.
 
 Caveats, stated plainly because this is the part worth understanding:
 
+- Only the title, summary and cluster are embedded, never the writeup. Embedding writeups made
+  the map sort by how much had been written rather than by topic: once eight long reports
+  landed, finished and unstarted topics split into two halves, and reports about the same
+  experiment piled on top of each other.
 - PCA is not UMAP. It preserves global structure well and tight local neighbourhoods poorly. It's
   ~60 dependency-free lines, which for a few dozen nodes is the right trade.
 - The two axes are normalised independently, so the picture is **not distance-true**. Relative

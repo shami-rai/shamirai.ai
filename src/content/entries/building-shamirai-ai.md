@@ -50,7 +50,8 @@ was right and I was wrong.
 **Prose moves the map. Metadata doesn't.** Writing the first section of one entry, about seventy
 words, was enough to move the map. Adding a repo link moved nothing, because links aren't
 embedded. The map responds to what I say about a topic, not to its bookkeeping, which is what I
-wanted and still surprised me by how little text it took.
+wanted and still surprised me by how little text it took. It turned out to be too sensitive, which
+is why it's no longer true: see the last point below.
 
 **The map once looked like it rearranged completely, and it hadn't.** Finishing the loop
 engineering writeup moved all twenty nodes, most by nearly the full width of the map. The structure
@@ -89,3 +90,10 @@ started. Then six of them were built and run by Claude while I was hands off. Th
 each writeup says so, but the map draws a node I worked through myself and a node that was worked
 through on my behalf exactly the same way. As it stands, the instrument can show that work happened
 but can't show that I learned from it, and that's the gap it was built to expose.
+
+**Place topics by what they are, not by what I wrote about them.** Once eight writeups of about a
+thousand words landed, the map stopped arranging topics and started arranging word counts. Every
+finished node crowded onto one side and every unstarted one onto the other, and six reports about
+the same device fleet piled on top of each other. Positions now come from each topic's title and
+one-line summary only, which puts every node on equal footing whatever its state, and keeps a node
+still when its report changes.

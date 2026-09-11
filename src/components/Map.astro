@@ -216,6 +216,7 @@ const payload = JSON.stringify({ nodes, edges }).replace(/</g, '\\u003c');
     let active: N | null = null;
     let filter = 'all';
     let labelDy: number[] = nodes.map(() => 0);
+    let labelDx: number[] = nodes.map(() => 0);
     let laidOutAt = -1;
     // Once the reader pans or zooms, the view is theirs, so stop re-framing it.
     let userMoved = false;
@@ -282,14 +283,22 @@ const payload = JSON.stringify({ nodes, edges }).replace(/</g, '\\u003c');
         y: n.y * s,
         w: ctx.measureText(n.label).width,
         dy: 0,
+        dx: 0,
       }));
+
+      // Where a label sits relative to its own node, and how much room to leave
+      // around another node's dot. A label is far wider than any sane node
+      // spacing, so spreading the nodes cannot keep labels off other dots; the
+      // label has to step aside instead.
+      const LABEL_TOP = 16;
+      const DOT_CLEAR = 9;
 
       for (let iter = 0; iter < 140; iter++) {
         for (let a = 0; a < L.length; a++) {
           for (let b = a + 1; b < L.length; b++) {
             const A = L[a]!,
               B = L[b]!;
-            if (Math.abs(A.x - B.x) > (A.w + B.w) / 2 + 12) continue;
+            if (Math.abs(A.x + A.dx - (B.x + B.dx)) > (A.w + B.w) / 2 + 12) continue;
             const d = B.y + B.dy - (A.y + A.dy);
             const gap = LINE_H + 4;
             if (Math.abs(d) < gap) {
@@ -300,9 +309,26 @@ const payload = JSON.stringify({ nodes, edges }).replace(/</g, '\\u003c');
             }
           }
         }
+        // Labels keep clear of other nodes' dots by sliding sideways, never so far
+        // that they stop sitting under their own node.
+        for (let a = 0; a < L.length; a++) {
+          const A = L[a]!;
+          const mid = A.y + LABEL_TOP + A.dy + LINE_H / 2;
+          for (let b = 0; b < L.length; b++) {
+            if (a === b) continue;
+            const B = L[b]!;
+            if (Math.abs(B.y - mid) > LINE_H / 2 + DOT_CLEAR) continue;
+            const off = B.x - (A.x + A.dx);
+            const overlap = A.w / 2 + DOT_CLEAR - Math.abs(off);
+            if (overlap > 0) A.dx -= Math.sign(off || 1) * overlap * 0.5;
+          }
+          const reach = Math.max(0, A.w / 2 - 6);
+          A.dx = Math.max(-reach, Math.min(reach, A.dx));
+        }
         for (const A of L) A.dy *= 0.995; // gentle pull back toward the node
       }
       labelDy = L.map((l) => l.dy);
+      labelDx = L.map((l) => l.dx);
       laidOutAt = cam.z;
     }
 
@@ -399,7 +425,7 @@ const payload = JSON.stringify({ nodes, edges }).replace(/</g, '\\u003c');
         ctx.fillStyle = isFocus
           ? `rgba(233,230,225,${al})`
           : `rgba(233,230,225,${bright * al * 0.8})`;
-        ctx.fillText(n.label, x, y + r + LABEL_GAP + (labelDy[i] ?? 0));
+        ctx.fillText(n.label, x + (labelDx[i] ?? 0), y + r + LABEL_GAP + (labelDy[i] ?? 0));
       }
     }
 

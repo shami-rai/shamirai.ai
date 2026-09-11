@@ -162,14 +162,16 @@ if (files.length < 3) {
 
 const docs = [];
 for (const f of files) {
-  const { data, content } = matter(await readFile(join(ENTRIES, f), 'utf8'));
+  const { data } = matter(await readFile(join(ENTRIES, f), 'utf8'));
   docs.push({
     slug: basename(f, '.md'),
-    // On an unwritten entry the summary is nearly all the signal there is, so it
-    // goes in ahead of the body. A title alone embeds to something very vague.
-    text: `${data.title}. ${data.summary ?? ''} ${data.cluster}. ${content
-      .replace(/^#+\s.*$/gm, ' ')
-      .trim()}`.slice(0, 2000),
+    // What a topic IS, never what was found. Embedding the writeups made the map
+    // sort by how much had been written: once eight long reports landed, the first
+    // axis split written from unwritten, and six reports about the same device
+    // fleet collapsed onto each other. Title, summary and cluster put every entry
+    // on equal footing whatever its state, and keep a node still when its writeup
+    // changes. A vague summary now means a vague position, so keep it sharp.
+    text: `${data.title}. ${data.summary ?? ''} ${data.cluster}.`,
   });
 }
 

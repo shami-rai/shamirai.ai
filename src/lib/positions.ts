@@ -79,7 +79,7 @@ function resolveOne(
  */
 function declump(
   pts: { at: [number, number]; pinned: boolean }[],
-  min = 0.15,
+  min = 0.18,
   iterations = 240,
 ): void {
   for (let it = 0; it < iterations; it++) {
