@@ -1,82 +1,82 @@
 {
   "agent-execution-graphs": [
-    0.1635,
+    0.3205,
     -0.72
   ],
   "agent-trajectory-eval": [
-    -0.3729,
-    0.2083
+    -0.3846,
+    -0.0205
   ],
   "building-shamirai-ai": [
-    -0.3238,
-    0.2841
+    -0.339,
+    0.1461
   ],
   "chunking-strategies": [
-    0.7168,
-    0.3289
+    0.7126,
+    0.4582
   ],
   "context-compaction": [
     -0.502,
-    0.2404
+    -0.0091
   ],
   "durable-objects-agent-state": [
-    0.3031,
-    -0.4101
+    0.3796,
+    -0.4794
   ],
   "graph-rag": [
     0.72,
-    0.2553
+    0.2823
   ],
   "harness-engineering": [
-    -0.72,
-    0.1199
+    -0.701,
+    0.0108
   ],
   "hybrid-search": [
-    0.7006,
+    0.615,
     0.72
   ],
   "knowledge-graphs-as-memory": [
-    0.3606,
-    -0.4294
+    0.4878,
+    -0.3806
   ],
   "llm-as-judge": [
-    0.4184,
-    -0.0051
+    0.4435,
+    0.1284
   ],
   "loop-engineering": [
-    -0.6414,
-    0.1451
+    -0.6519,
+    -0.1292
   ],
   "mcp-server-authoring": [
-    -0.3783,
-    -0.3106
+    -0.5829,
+    0.0538
   ],
   "multi-agent-orchestration": [
-    0.2044,
-    -0.5985
+    0.3528,
+    -0.4992
   ],
   "prompt-regression-suites": [
-    0.1775,
-    -0.2538
+    0.2682,
+    -0.1913
   ],
   "react-loops": [
-    0.0469,
-    -0.444
+    0.1838,
+    -0.5825
   ],
   "streaming-and-backpressure": [
-    0.3704,
-    0.6305
+    0.402,
+    0.2812
   ],
   "tool-descriptions-as-api": [
-    -0.6464,
-    -0.0939
+    -0.6805,
+    0.1788
   ],
   "tool-use-error-recovery": [
-    -0.6952,
-    0.4446
+    -0.72,
+    0.1482
   ],
   "workers-ai-at-the-edge": [
-    0.3946,
-    0.0841
+    0.4089,
+    -0.0309
   ]
 }
