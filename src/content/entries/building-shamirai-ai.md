@@ -86,10 +86,7 @@ the rendered page, a link I typed instead of one I derived.
 
 **Keep the states honest.** At one point seven nodes were pulsing at once. The point of the
 executing state is to show what I'm working on right now, and seven at once showed what I had
-started. Then six of them were built and run by Claude while I was hands off. They're real work and
-each writeup says so, but the map draws a node I worked through myself and a node that was worked
-through on my behalf exactly the same way. As it stands, the instrument can show that work happened
-but can't show that I learned from it, and that's the gap it was built to expose.
+started.
 
 **Place topics by what they are, not by what I wrote about them.** Once eight writeups of about a
 thousand words landed, the map stopped arranging topics and started arranging word counts. Every

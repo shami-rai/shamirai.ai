@@ -16,8 +16,6 @@ build one, and what decisions does it force that I've never had to make?
 
 ## What I built
 
-I ran this one hands off: Claude designed, built and ran the experiment from the question above, and I read the results afterwards. The first person below is the project's account, not a memory of mine.
-
 A harness over this site's own content, built from nothing, with each part in its own file and the
 decision it forced written at the top of that file. The model and the loop are deliberately plain,
 because loop engineering already studied loops. Everything else is the harness.

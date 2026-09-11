@@ -17,8 +17,6 @@ want to find out whether that instinct is a UX habit that doesn't transfer.
 
 ## What I built
 
-I ran this one hands off: Claude designed, built and ran the experiment from the question above, and I read the results afterwards. The first person below is the project's account, not a memory of mine.
-
 The same rig as loop engineering, on purpose: the same frozen fleet of 400 devices, the same three narrow tools, the same question with the same right answer and the same plausible wrong one. The only new code sits between the model and the tools. It breaks some calls and decides what the model is told when it does, so every difference between conditions is a difference in what the model was shown, never in what the fleet contains.
 
 Three kinds of failure. Transient: the first attempt at some calls fails with a timeout, and the identical call works if retried. Which calls fail comes from a seeded hash of the call itself, so every wording faces the same failures on the same calls. Drift: the backend has renamed the downtime field and nobody updated the tool description, so ranking by downtime fails for the whole run, while the device records quietly carry the new name. Silent: the calls the transient schedule would have failed come back looking like success instead (an empty list, a count of zero, a null record) with no error flag.

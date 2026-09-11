@@ -17,8 +17,6 @@ where compaction stops being housekeeping and becomes the cause of the failure?
 
 ## What I built
 
-I ran this one hands off: Claude designed, built and ran the experiment from the question above, and I read the results afterwards. The first person below is the project's account, not a memory of mine.
-
 The same rig as loop engineering, pointed at a different variable: the same 400 devices, three tools, ten-row cap and question. That task peaks around 6k tokens and never gets near a context limit, so nothing forces compaction on it. I forced it. Before each request, a transform rewrites the copy of the history that gets sent, while the loop keeps its own full record, so every run shows exactly what the model was shown and what it was denied.
 
 The transform has three dials, moved one at a time: how many recent turns of tool results survive (three, two or one), what a cleared result turns into (a placeholder, the device ids it listed, or a digest of ids and numbers), and whether the model's own earlier thinking goes too. Alongside it I ran the API's own tool-result clearing, with its trigger dropped to 2,000 tokens so it would bite on something this small, keeping the last three or ten tool uses.

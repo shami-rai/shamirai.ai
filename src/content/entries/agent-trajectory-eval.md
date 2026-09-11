@@ -17,8 +17,6 @@ actually detect?
 
 ## What I built
 
-I ran this one hands off: Claude designed, built and ran the experiment from the question above, and I read the results afterwards. The first person below is the project's account, not a memory of mine.
-
 A scorer that reads an agent's run records and reports ten properties of the path it took, and a labelled corpus to measure it against. The agent is the one from loop engineering: same fleet, same three tools, same question, plus a FINAL line so a program can read the answer.
 
 Each property is defined twice, once as I would judge it reading the trace and once as code. Most are plain trace arithmetic: turns versus calls, repeated calls, errors and whether they were retried. The two that matter most are whether the evidence actually proves the answer, and from which turn it could have. Those needed something else: an oracle that knows what the tools mean. A top-ten list caps everything it didn't return. A total that matches the devices already identified closes a range. From those two rules it bounds the rate every device could have, seen or unseen, and says whether anything could still beat the named answer. Replayed on loop engineering's first trace, it sharpened my old by-eye claim: four of the six band queries could each be dropped on their own, but only three together.

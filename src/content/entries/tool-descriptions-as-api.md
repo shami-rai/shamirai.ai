@@ -17,8 +17,6 @@ fail by editing nothing but a description?
 
 ## What I built
 
-I ran this one hands off: Claude designed, built and ran the experiment from the question above, and I read the results afterwards. The first person below is the project's account, not a memory of mine.
-
 A way to change nothing but words, and prove that's all that changed.
 
 The world, the tools and the question are loop engineering's, untouched: 400 synthetic medical devices, three narrow tools (count, rank by one stored field with at most ten rows back, fetch one device), and a question whose right answer never appears in any single ranking of the whole pool. The only thing that moves between conditions is the description strings, on each tool and each parameter. Every variant is a copy of the baseline definitions with strings edited, and a checker refuses to start a run unless the variant matches the baseline exactly once every description is stripped out. It also has to reject a deliberately retyped parameter, so I know it can fail.

@@ -17,8 +17,6 @@ hand it over directly.
 
 ## What I built
 
-I ran this one hands off: Claude designed, built and ran the experiment from the question above, and I read the results afterwards. The first person below is the project's account, not a memory of mine.
-
 The same rig as loop engineering, with the tools moved out of the process. The fleet, the three tool handlers, the ten-row cap, the question and the hand-written loop are unchanged. What changed is the path between the loop and the handlers. On one side, in-process function calls. On the other, a Model Context Protocol server that the harness spawns as a child process and talks to over stdio: newline-delimited JSON-RPC on stdin and stdout.
 
 I wrote the server twice. Once the way the official SDK wants it written, with its high-level McpServer. That only accepts zod schemas, so my JSON Schema had to be re-authored in zod, and the SDK converts it back when a client asks what tools exist. Once with the low-level Server class, handed my exact JSON Schema and doing nothing for me. The second one is the control. The model sees identical bytes over it, so any difference there is the protocol itself.
